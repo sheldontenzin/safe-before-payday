@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Budget Before Payday</title>
+    <meta name="application-name" content="Budget Before Payday" />
+    <meta name="apple-mobile-web-app-title" content="Budget Before Payday" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="theme-color" content="#f5f1ea" />
+    <meta
+      name="description"
+      content="A simple mobile web app for tracking your need and want budget before the next payday."
+    />
+    <link rel="manifest" href="site.webmanifest" />
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <p class="eyebrow">Budget before next payday</p>
+        <h1>Set a simple budget for this pay period and track what you spend.</h1>
+        <p class="hero-copy">
+          Split this period into need and want money, then add expenses as they happen.
+        </p>
+      </section>
+
+      <nav class="view-switcher" aria-label="App screens">
+        <button class="view-tab active" id="planner-tab" type="button">Plan</button>
+        <button class="view-tab" id="tracker-tab" type="button">Track</button>
+      </nav>
+
+      <section class="screen active" id="planner-screen">
+        <section class="card dashboard-card">
+          <div class="card-header">
+            <div>
+              <p class="section-kicker">This pay period</p>
+              <h2>Budget before next payday</h2>
+            </div>
+          </div>
+
+          <div class="ring-layout">
+            <div class="progress-wrap">
+              <svg class="progress-ring" viewBox="0 0 120 120" aria-hidden="true">
+                <circle class="progress-ring-track" cx="60" cy="60" r="46"></circle>
+                <circle
+                  class="progress-ring-fill"
+                  id="progress-ring-fill"
+                  cx="60"
+                  cy="60"
+                  r="46"
+                ></circle>
+              </svg>
+              <div class="progress-center">
+                <p class="progress-percent" id="progress-percent">0%</p>
+                <p class="progress-center-label">used</p>
+                <p class="progress-center-amount" id="progress-center-amount">$0 left</p>
+              </div>
+            </div>
+
+            <div class="ring-copy">
+              <p class="section-kicker">Snapshot</p>
+              <h3 class="dashboard-title">How this period is going</h3>
+              <p class="dashboard-copy" id="dashboard-copy">
+                Set your budget below to start tracking this pay period.
+              </p>
+            </div>
+          </div>
+
+          <div class="summary-grid">
+            <article class="summary-card">
+              <p class="summary-label">Total budget</p>
+              <p class="summary-value" id="total-budget">$0.00</p>
+            </article>
+            <article class="summary-card">
+              <p class="summary-label">Spent so far</p>
+              <p class="summary-value" id="total-used">$0.00</p>
+            </article>
+            <article class="summary-card accent-card">
+              <p class="summary-label">Left before payday</p>
+              <p class="summary-value" id="total-left">$0.00</p>
+            </article>
+            <article class="summary-card">
+              <p class="summary-label">Days until payday</p>
+              <p class="summary-value" id="days-left">0</p>
+            </article>
+          </div>
+
+          <div class="bucket-grid">
+            <article class="bucket-card" id="need-card">
+              <div class="bucket-head">
+                <p class="bucket-label">Need budget</p>
+                <p class="bucket-total" id="need-budget-total">$0.00</p>
+              </div>
+              <div class="bucket-metrics">
+                <p>Used <strong id="need-used">$0.00</strong></p>
+                <p>Left <strong id="need-left">$0.00</strong></p>
+              </div>
+            </article>
+
+            <article class="bucket-card" id="want-card">
+              <div class="bucket-head">
+                <p class="bucket-label">Want budget</p>
+                <p class="bucket-total" id="want-budget-total">$0.00</p>
+              </div>
+              <div class="bucket-metrics">
+                <p>Used <strong id="want-used">$0.00</strong></p>
+                <p>Left <strong id="want-left">$0.00</strong></p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-header">
+            <div>
+              <p class="section-kicker">Set up</p>
+              <h2>Your plan for this period</h2>
+            </div>
+            <button class="ghost-button" id="clear-data-button" type="button">
+              Clear plan
+            </button>
+          </div>
+
+          <form id="budget-form" class="form-grid">
+            <label class="field">
+              <span>Next payday date</span>
+              <input id="payday" name="payday" type="date" required />
+            </label>
+
+            <label class="field">
+              <span>Budget before next payday</span>
+              <input
+                id="period-budget"
+                name="periodBudget"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                required
+              />
+            </label>
+
+            <label class="field">
+              <span>Need budget</span>
+              <input
+                id="need-budget"
+                name="needBudget"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                required
+              />
+            </label>
+
+            <label class="field">
+              <span>Want budget</span>
+              <input
+                id="want-budget"
+                name="wantBudget"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                required
+              />
+            </label>
+
+            <p class="inline-note" id="budget-match-note">
+              Your need and want budgets should add up to your total period budget.
+            </p>
+
+            <button class="primary-button" type="submit">Save budget</button>
+          </form>
+        </section>
+      </section>
+
+      <section class="screen" id="tracker-screen">
+        <section class="card tracker-card">
+          <div class="card-header">
+            <div>
+              <p class="section-kicker">Track spending</p>
+              <h2>Add expense</h2>
+            </div>
+          </div>
+
+          <div class="mini-summary">
+            <p class="mini-summary-label">Left before payday</p>
+            <p class="mini-summary-value" id="tracker-total-left">$0.00</p>
+            <p class="mini-summary-note" id="tracker-summary-note">
+              Save your budget on the Plan tab to see your progress here.
+            </p>
+          </div>
+
+          <form id="expense-form" class="form-grid">
+            <fieldset class="choice-group">
+              <legend>Expense category</legend>
+              <label class="choice-pill">
+                <input type="radio" name="expenseType" value="Need" required />
+                <span>Need</span>
+              </label>
+              <label class="choice-pill">
+                <input type="radio" name="expenseType" value="Want" required />
+                <span>Want</span>
+              </label>
+            </fieldset>
+
+            <label class="field">
+              <span>Amount</span>
+              <input
+                id="expense-amount"
+                name="expenseAmount"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                required
+              />
+            </label>
+
+            <label class="field">
+              <span>Note (optional)</span>
+              <input
+                id="expense-note"
+                name="expenseNote"
+                type="text"
+                maxlength="80"
+                placeholder="Groceries, coffee, bus fare..."
+              />
+            </label>
+
+            <button class="secondary-button" type="submit">Add expense</button>
+          </form>
+
+          <div class="expense-preview" id="expense-preview">
+            Enter an amount to see how it would affect this pay period.
+          </div>
+
+          <section class="purchase-history-section" aria-live="polite">
+            <div class="history-header">
+              <div>
+                <p class="section-kicker">Expense history</p>
+                <h2>Spent so far</h2>
+              </div>
+              <button class="ghost-button" id="clear-history-button" type="button">
+                Clear expense history
+              </button>
+            </div>
+
+            <div class="history-summary">
+              <p>Need spent so far: <strong id="need-total">$0.00</strong></p>
+              <p>Want spent so far: <strong id="want-total">$0.00</strong></p>
+            </div>
+
+            <ul class="purchase-history-list" id="expense-history-list">
+              <li class="history-empty">No expenses yet.</li>
+            </ul>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
