@@ -232,20 +232,29 @@ function App() {
         date: entry.date,
         amount: Number(entry.amount) || 0,
         kind: "income",
+        sortOrder: 2,
       })),
       ...trackerState.fixedExpenses.map((bill) => ({
         date: bill.dueDate,
         amount: Number(bill.amount) || 0,
         kind: "bill",
+        sortOrder: 0,
       })),
       ...trackerState.extraExpenses.map((entry) => ({
         date: entry.date,
         amount: Number(entry.amount) || 0,
         kind: "spending",
+        sortOrder: 1,
       })),
     ]
       .filter((event) => event.date && event.date >= todayValue)
-      .sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+      .sort((a, b) => {
+        if (a.date !== b.date) {
+          return a.date > b.date ? 1 : -1;
+        }
+
+        return a.sortOrder - b.sortOrder;
+      });
 
     let runningBalance = startingBalance;
     let firstNegativeDate = null;
@@ -272,6 +281,7 @@ function App() {
       projectedBalance: runningBalance,
       firstNegativeDate,
       firstTightDate,
+      hasFutureEvents: futureEvents.length > 0,
     };
   }, [trackerState.currentBalance, trackerState.extraExpenses, trackerState.fixedExpenses, trackerState.incomeEntries]);
 
@@ -388,13 +398,17 @@ function App() {
 
   function getForecastMessage() {
     if (forecast.firstNegativeDate) {
-      return `You may run low around ${formatDateLabel(forecast.firstNegativeDate)}.`;
+      return `You may run out around ${formatDateLabel(forecast.firstNegativeDate)}.`;
     }
 
     if (forecast.firstTightDate) {
       return `Things might be tight in a few days, around ${formatDateLabel(
         forecast.firstTightDate
       )}.`;
+    }
+
+    if (!forecast.hasFutureEvents) {
+      return "Add a bill, income, or spending date to see what is coming up.";
     }
 
     return "You're on track this month.";
