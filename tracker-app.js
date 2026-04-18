@@ -1,12 +1,6 @@
 const { useEffect, useMemo, useRef, useState } = React;
 
 const STORAGE_KEY = "monthly-money-tracker-v1";
-const LOGO_IMAGE = "/app/logo.png";
-const ENCOURAGING_MESSAGES = [
-  "You're doing okay 🌿",
-  "Let's take a look together",
-  "One step at a time",
-];
 
 function createId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -127,15 +121,13 @@ function saveState(state) {
 function EmptyState() {
   return (
     <div className="empty-state">
-      <p className="empty-title">Let's add your first income 🌼</p>
-      <p className="empty-copy">Start with one number. We can do the rest together.</p>
+      <p className="empty-title">Add your first income</p>
     </div>
   );
 }
 
 function App() {
   const [trackerState, setTrackerState] = useState(loadState);
-  const [messageIndex, setMessageIndex] = useState(0);
   const [incomeForm, setIncomeForm] = useState({ amount: "", date: getTodayValue() });
   const [billForm, setBillForm] = useState({ name: "", amount: "", dueDate: getTodayValue() });
   const [spendingForm, setSpendingForm] = useState({
@@ -151,14 +143,6 @@ function App() {
   useEffect(() => {
     saveState(trackerState);
   }, [trackerState]);
-
-  useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      setMessageIndex((current) => (current + 1) % ENCOURAGING_MESSAGES.length);
-    }, 4200);
-
-    return () => window.clearInterval(intervalId);
-  }, []);
 
   const currentMonthKey = getCurrentMonthKey();
   const incomeThisMonth = trackerState.incomeEntries.filter((entry) => isInCurrentMonth(entry.date, currentMonthKey));
@@ -370,18 +354,18 @@ function App() {
 
   function getSupportMessage() {
     if (totals.currentBalance === 0 && totals.totalIncome === 0) {
-      return "Let's add your first income 🌼";
+      return "Add income to get started.";
     }
 
     if (totals.availableMoney < 0) {
-      return "You're a little over right now. That happens.";
+      return "Below zero right now.";
     }
 
     if (totals.availableMoney <= Math.max(150, (totals.currentBalance + totals.totalIncome) * 0.2)) {
-      return "Things are a little tight. Take it slow for a few days.";
+      return "Tight right now.";
     }
 
-    return "You have money available right now. Small steps are enough.";
+    return "Money available right now.";
   }
 
   function getForecastMessage() {
@@ -406,14 +390,7 @@ function App() {
     <main className="money-app">
       <div className="app-stack">
         <section className="hero-card">
-          <div className="hero-row">
-            <div>
-              <p className="hero-label">Monthly money tracker</p>
-              <h1>{ENCOURAGING_MESSAGES[messageIndex]}</h1>
-            </div>
-            <img className="hero-logo" src={LOGO_IMAGE} alt="" aria-hidden="true" />
-          </div>
-          <p className="hero-copy">Money in. Money out. A simple look at what is left.</p>
+          <h1>Overview</h1>
         </section>
 
         {totals.currentBalance === 0 && totals.totalIncome === 0 ? (
@@ -482,15 +459,12 @@ function App() {
 
           <div className="insight-card">
             <p className="insight-copy">{getForecastMessage()}</p>
-            <p className="insight-meta">
-              Looking at your balance today plus dated money in, bills, and spending.
-            </p>
           </div>
         </section>
 
         <div className="inline-actions">
           <a className="inline-button primary" href="#income-form">
-            Add money
+            Add income
           </a>
           <a className="inline-button secondary" href="#spending-form">
             Add spending
@@ -534,11 +508,13 @@ function App() {
         <section className="card" id="income-form" ref={incomeRef}>
           <div className="section-head">
             <div>
-              <p className="section-label">Money in</p>
-              <h2>Add money</h2>
+              <p className="section-label">Income</p>
+              <h2>Add income</h2>
             </div>
             <div className="section-total">{formatCurrency(totals.incomeThisMonthTotal)}</div>
           </div>
+
+          <p className="section-helper">Add expected income (salary, freelance, etc.)</p>
 
           <form className="entry-form" onSubmit={addIncome}>
             <label className="field">
@@ -568,7 +544,7 @@ function App() {
             </label>
 
             <button className="primary-button" type="submit">
-              Add money
+              Add income
             </button>
           </form>
 
@@ -578,7 +554,7 @@ function App() {
               Money available uses all income entries in this list.
             </p>
             {allIncomeEntries.length === 0 ? (
-              <p className="list-empty">Let's add your first income 🌼</p>
+              <p className="list-empty">No income added yet.</p>
             ) : (
               <ul className="entry-list">
                 {allIncomeEntries.map((entry) => (

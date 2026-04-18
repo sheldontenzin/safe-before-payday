@@ -74,11 +74,10 @@ p {
 }
 
 .hero-card {
-  padding: 28px 24px;
+  padding: 24px;
   background: rgba(255, 255, 255, 0.94);
 }
 
-.hero-row,
 .section-head {
   display: flex;
   align-items: flex-start;
@@ -86,7 +85,6 @@ p {
   gap: 16px;
 }
 
-.hero-label,
 .section-label,
 .list-title,
 .main-label {
@@ -96,42 +94,20 @@ p {
 }
 
 .hero-card h1 {
-  margin-top: 10px;
-  max-width: 14ch;
-  font-size: clamp(2rem, 7vw, 2.8rem);
-  line-height: 1.06;
+  font-size: 1.35rem;
+  line-height: 1.2;
   letter-spacing: -0.04em;
   color: #243129;
 }
 
-.hero-copy {
-  margin-top: 16px;
-  max-width: 30ch;
-  color: rgba(47, 62, 52, 0.82);
-  line-height: 1.72;
-}
-
-.hero-logo {
-  width: 34px;
-  height: 34px;
-  flex: 0 0 auto;
-  object-fit: contain;
-}
-
 .empty-state {
-  padding: 28px 24px;
+  padding: 24px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(232, 239, 230, 0.74));
 }
 
 .empty-title {
-  font-size: 1.3rem;
+  font-size: 1.05rem;
   font-weight: 700;
-}
-
-.empty-copy {
-  margin-top: 8px;
-  color: var(--muted);
-  line-height: 1.6;
 }
 
 .main-card {
@@ -264,6 +240,13 @@ p {
   font-size: 0.9rem;
 }
 
+.section-helper {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
 .entry-form {
   display: grid;
   gap: 16px;
@@ -352,13 +335,6 @@ p {
   font-size: 1.02rem;
   font-weight: 700;
   line-height: 1.55;
-}
-
-.insight-meta {
-  margin-top: 10px;
-  color: var(--muted);
-  font-size: 0.88rem;
-  line-height: 1.6;
 }
 
 .inline-actions {
@@ -452,15 +428,10 @@ p {
     border-radius: 22px;
   }
 
-  .hero-card h1 {
-    font-size: 1.78rem;
-  }
-
   .main-value {
     font-size: 2.35rem;
   }
 
-  .hero-row,
   .entry-row {
     align-items: flex-start;
   }
