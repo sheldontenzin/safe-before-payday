@@ -7,13 +7,8 @@
   "theme_color": "#F6F4EF",
   "icons": [
     {
-      "src": "/icons/polaris-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "/icons/polaris-512.png",
-      "sizes": "512x512",
+      "src": "/app/icon.png",
+      "sizes": "768x768",
       "type": "image/png"
     }
   ]
