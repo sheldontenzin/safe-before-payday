@@ -1,6 +1,24 @@
 const { useEffect, useMemo, useRef, useState } = React;
 
 const STORAGE_KEY = "monthly-money-tracker-v1";
+const REPEAT_OPTIONS = [
+  { value: "once", label: "One time" },
+  { value: "weekly", label: "Weekly" },
+  { value: "biweekly", label: "Every 2 weeks" },
+  { value: "monthly", label: "Monthly" },
+  { value: "friday", label: "Every Friday" },
+  { value: "first", label: "Every 1st" },
+];
+const INCOME_PRESETS = [
+  { label: "Paycheck", repeat: "biweekly", repeats: "2" },
+  { label: "Freelance", repeat: "once", repeats: "1" },
+];
+const BILL_PRESETS = [
+  { label: "Rent", repeat: "monthly", repeats: "3" },
+  { label: "Utilities", repeat: "monthly", repeats: "3" },
+  { label: "Phone bill", repeat: "monthly", repeats: "3" },
+];
+const SPENDING_PRESETS = ["Groceries", "Gas", "Utilities"];
 
 function createId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -50,6 +68,111 @@ function clampMoney(value) {
   return Math.round(value * 100) / 100;
 }
 
+function dateFromValue(dateValue) {
+  const [year, month, day] = dateValue.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function valueFromDate(date) {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function addDays(date, days) {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate;
+}
+
+function addMonths(date, months) {
+  const nextDate = new Date(date);
+  const targetDay = nextDate.getDate();
+  nextDate.setDate(1);
+  nextDate.setMonth(nextDate.getMonth() + months);
+  const lastDay = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+  nextDate.setDate(Math.min(targetDay, lastDay));
+  return nextDate;
+}
+
+function nextWeekdayOnOrAfter(date, weekday) {
+  const nextDate = new Date(date);
+  const difference = (weekday - nextDate.getDay() + 7) % 7;
+  nextDate.setDate(nextDate.getDate() + difference);
+  return nextDate;
+}
+
+function firstOfMonthOnOrAfter(date) {
+  if (date.getDate() === 1) {
+    return new Date(date);
+  }
+
+  return new Date(date.getFullYear(), date.getMonth() + 1, 1);
+}
+
+function buildRecurringDates(startValue, pattern, repeatsValue) {
+  const count = Math.max(1, Math.min(24, Number.parseInt(repeatsValue, 10) || 1));
+  const dates = [];
+  let currentDate = dateFromValue(startValue || getTodayValue());
+
+  if (pattern === "friday") {
+    currentDate = nextWeekdayOnOrAfter(currentDate, 5);
+  }
+
+  if (pattern === "first") {
+    currentDate = firstOfMonthOnOrAfter(currentDate);
+  }
+
+  for (let index = 0; index < count; index += 1) {
+    dates.push(valueFromDate(currentDate));
+
+    if (pattern === "once") {
+      break;
+    }
+
+    if (pattern === "weekly" || pattern === "friday") {
+      currentDate = addDays(currentDate, 7);
+      continue;
+    }
+
+    if (pattern === "biweekly") {
+      currentDate = addDays(currentDate, 14);
+      continue;
+    }
+
+    if (pattern === "monthly" || pattern === "first") {
+      currentDate = addMonths(currentDate, 1);
+    }
+  }
+
+  return dates;
+}
+
+function getNextOccurrenceAfter(dateValue, pattern) {
+  const currentDate = dateFromValue(dateValue || getTodayValue());
+
+  if (pattern === "weekly" || pattern === "friday") {
+    return valueFromDate(addDays(currentDate, 7));
+  }
+
+  if (pattern === "biweekly") {
+    return valueFromDate(addDays(currentDate, 14));
+  }
+
+  if (pattern === "monthly" || pattern === "first") {
+    return valueFromDate(addMonths(currentDate, 1));
+  }
+
+  return getTodayValue();
+}
+
+function normalizeIncomeEntry(entry) {
+  return {
+    id: entry?.id ?? createId("income"),
+    amount: Number(entry?.amount) || 0,
+    date: typeof entry?.date === "string" ? entry.date : getTodayValue(),
+    label: typeof entry?.label === "string" ? entry.label : "",
+  };
+}
+
 function normalizeBillEntry(entry) {
   if (entry?.dueDate) {
     return {
@@ -87,6 +210,22 @@ function loadState() {
     incomeEntries: [],
     fixedExpenses: [],
     extraExpenses: [],
+    lastIncomeValues: {
+      label: "",
+      amount: "",
+      repeat: "once",
+      repeats: "1",
+    },
+    lastBillValues: {
+      name: "",
+      amount: "",
+      repeat: "once",
+      repeats: "1",
+    },
+    lastSpendingValues: {
+      note: "",
+      amount: "",
+    },
   };
 
   try {
@@ -99,11 +238,29 @@ function loadState() {
     return {
       currentBalance: parsed?.currentBalance ?? "",
       estimatedMonthlyIncome: parsed?.estimatedMonthlyIncome ?? "",
-      incomeEntries: Array.isArray(parsed?.incomeEntries) ? parsed.incomeEntries : [],
+      incomeEntries: Array.isArray(parsed?.incomeEntries)
+        ? parsed.incomeEntries.map(normalizeIncomeEntry)
+        : [],
       fixedExpenses: Array.isArray(parsed?.fixedExpenses)
         ? parsed.fixedExpenses.map(normalizeBillEntry)
         : [],
       extraExpenses: Array.isArray(parsed?.extraExpenses) ? parsed.extraExpenses : [],
+      lastIncomeValues: {
+        label: parsed?.lastIncomeValues?.label ?? "",
+        amount: parsed?.lastIncomeValues?.amount ?? "",
+        repeat: parsed?.lastIncomeValues?.repeat ?? "once",
+        repeats: parsed?.lastIncomeValues?.repeats ?? "1",
+      },
+      lastBillValues: {
+        name: parsed?.lastBillValues?.name ?? "",
+        amount: parsed?.lastBillValues?.amount ?? "",
+        repeat: parsed?.lastBillValues?.repeat ?? "once",
+        repeats: parsed?.lastBillValues?.repeats ?? "1",
+      },
+      lastSpendingValues: {
+        note: parsed?.lastSpendingValues?.note ?? "",
+        amount: parsed?.lastSpendingValues?.amount ?? "",
+      },
     };
   } catch (error) {
     return fallback;
@@ -128,21 +285,43 @@ function EmptyState() {
 
 function App() {
   const [trackerState, setTrackerState] = useState(loadState);
-  const [incomeForm, setIncomeForm] = useState({ amount: "", date: getTodayValue() });
-  const [billForm, setBillForm] = useState({ name: "", amount: "", dueDate: getTodayValue() });
+  const [incomeForm, setIncomeForm] = useState(() => ({
+    label: trackerState.lastIncomeValues.label,
+    amount: trackerState.lastIncomeValues.amount,
+    date: getTodayValue(),
+    repeat: trackerState.lastIncomeValues.repeat,
+    repeats: trackerState.lastIncomeValues.repeats,
+  }));
+  const [billForm, setBillForm] = useState(() => ({
+    name: trackerState.lastBillValues.name,
+    amount: trackerState.lastBillValues.amount,
+    dueDate: getTodayValue(),
+    repeat: trackerState.lastBillValues.repeat,
+    repeats: trackerState.lastBillValues.repeats,
+  }));
   const [spendingForm, setSpendingForm] = useState({
-    amount: "",
-    note: "",
+    amount: trackerState.lastSpendingValues.amount,
+    note: trackerState.lastSpendingValues.note,
     date: getTodayValue(),
   });
+  const [undoState, setUndoState] = useState(null);
   const balanceRef = useRef(null);
   const incomeRef = useRef(null);
   const spendingRef = useRef(null);
   const billsRef = useRef(null);
+  const undoTimeoutRef = useRef(null);
 
   useEffect(() => {
     saveState(trackerState);
   }, [trackerState]);
+
+  useEffect(() => {
+    return () => {
+      if (undoTimeoutRef.current) {
+        window.clearTimeout(undoTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const currentMonthKey = getCurrentMonthKey();
   const incomeThisMonth = trackerState.incomeEntries.filter((entry) => isInCurrentMonth(entry.date, currentMonthKey));
@@ -258,6 +437,17 @@ function App() {
   const allIncomeEntries = [...trackerState.incomeEntries].sort((a, b) => (a.date < b.date ? 1 : -1));
   const recentSpending = [...trackerState.extraExpenses].sort((a, b) => (a.date < b.date ? 1 : -1));
 
+  function showUndoToast(payload) {
+    if (undoTimeoutRef.current) {
+      window.clearTimeout(undoTimeoutRef.current);
+    }
+
+    setUndoState(payload);
+    undoTimeoutRef.current = window.setTimeout(() => {
+      setUndoState(null);
+    }, 5000);
+  }
+
   function updateEstimatedIncome(value) {
     setTrackerState((current) => ({
       ...current,
@@ -280,19 +470,30 @@ function App() {
       return;
     }
 
-    setTrackerState((current) => ({
-      ...current,
-      incomeEntries: [
-        {
-          id: createId("income"),
-          amount,
-          date: incomeForm.date || getTodayValue(),
-        },
-        ...current.incomeEntries,
-      ],
+    const dates = buildRecurringDates(incomeForm.date, incomeForm.repeat, incomeForm.repeats);
+    const incomeEntries = dates.map((dateValue) => ({
+      id: createId("income"),
+      amount,
+      date: dateValue,
+      label: incomeForm.label.trim(),
     }));
 
-    setIncomeForm({ amount: "", date: getTodayValue() });
+    setTrackerState((current) => ({
+      ...current,
+      incomeEntries: [...incomeEntries, ...current.incomeEntries],
+      lastIncomeValues: {
+        label: incomeForm.label,
+        amount: incomeForm.amount,
+        repeat: incomeForm.repeat,
+        repeats: incomeForm.repeats,
+      },
+    }));
+
+    const nextDate = getNextOccurrenceAfter(dates[dates.length - 1] ?? getTodayValue(), incomeForm.repeat);
+    setIncomeForm((current) => ({
+      ...current,
+      date: nextDate,
+    }));
   }
 
   function addBill(event) {
@@ -303,20 +504,30 @@ function App() {
       return;
     }
 
-    setTrackerState((current) => ({
-      ...current,
-      fixedExpenses: [
-        {
-          id: createId("bill"),
-          name: billForm.name.trim(),
-          amount,
-          dueDate: billForm.dueDate,
-        },
-        ...current.fixedExpenses,
-      ],
+    const dates = buildRecurringDates(billForm.dueDate, billForm.repeat, billForm.repeats);
+    const fixedExpenses = dates.map((dateValue) => ({
+      id: createId("bill"),
+      name: billForm.name.trim(),
+      amount,
+      dueDate: dateValue,
     }));
 
-    setBillForm({ name: "", amount: "", dueDate: getTodayValue() });
+    setTrackerState((current) => ({
+      ...current,
+      fixedExpenses: [...fixedExpenses, ...current.fixedExpenses],
+      lastBillValues: {
+        name: billForm.name,
+        amount: billForm.amount,
+        repeat: billForm.repeat,
+        repeats: billForm.repeats,
+      },
+    }));
+
+    const nextDate = getNextOccurrenceAfter(dates[dates.length - 1] ?? getTodayValue(), billForm.repeat);
+    setBillForm((current) => ({
+      ...current,
+      dueDate: nextDate,
+    }));
   }
 
   function addSpending(event) {
@@ -338,15 +549,74 @@ function App() {
         },
         ...current.extraExpenses,
       ],
+      lastSpendingValues: {
+        note: spendingForm.note,
+        amount: spendingForm.amount,
+      },
     }));
 
-    setSpendingForm({ amount: "", note: "", date: getTodayValue() });
+    setSpendingForm((current) => ({
+      ...current,
+      date: getTodayValue(),
+    }));
   }
 
   function removeEntry(collectionKey, entryId) {
+    let removedEntry = null;
+
+    setTrackerState((current) => {
+      removedEntry = current[collectionKey].find((entry) => entry.id === entryId) ?? null;
+
+      return {
+        ...current,
+        [collectionKey]: current[collectionKey].filter((entry) => entry.id !== entryId),
+      };
+    });
+
+    if (removedEntry) {
+      showUndoToast({ collectionKey, entry: removedEntry });
+    }
+  }
+
+  function undoRemove() {
+    if (!undoState) {
+      return;
+    }
+
+    if (undoTimeoutRef.current) {
+      window.clearTimeout(undoTimeoutRef.current);
+    }
+
     setTrackerState((current) => ({
       ...current,
-      [collectionKey]: current[collectionKey].filter((entry) => entry.id !== entryId),
+      [undoState.collectionKey]: [undoState.entry, ...current[undoState.collectionKey]],
+    }));
+
+    setUndoState(null);
+  }
+
+  function applyIncomePreset(preset) {
+    setIncomeForm((current) => ({
+      ...current,
+      label: preset.label,
+      repeat: preset.repeat,
+      repeats: preset.repeats,
+    }));
+  }
+
+  function applyBillPreset(preset) {
+    setBillForm((current) => ({
+      ...current,
+      name: preset.label,
+      repeat: preset.repeat,
+      repeats: preset.repeats,
+    }));
+  }
+
+  function applySpendingPreset(note) {
+    setSpendingForm((current) => ({
+      ...current,
+      note,
     }));
   }
 
@@ -433,7 +703,7 @@ function App() {
 
   return (
     <main className="money-app">
-      <div className="app-stack">
+      <div className="app-stack" id="summary-top">
         <section className="hero-card">
           <p className="hero-label">This month</p>
           <h1>{monthlySnapshot.headline}</h1>
@@ -529,7 +799,7 @@ function App() {
           </a>
         </div>
 
-        <section className="card" ref={balanceRef}>
+        <section className="card" id="more-section" ref={balanceRef}>
           <div className="section-head">
             <div>
               <p className="section-label">Right now</p>
@@ -573,8 +843,32 @@ function App() {
           </div>
 
           <p className="section-helper">Add expected income (salary, freelance, etc.)</p>
+          <div className="preset-row">
+            {INCOME_PRESETS.map((preset) => (
+              <button
+                key={preset.label}
+                className="preset-chip"
+                type="button"
+                onClick={() => applyIncomePreset(preset)}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
 
           <form className="entry-form" onSubmit={addIncome}>
+            <label className="field">
+              <span>Label</span>
+              <input
+                type="text"
+                placeholder="Paycheck"
+                value={incomeForm.label}
+                onChange={(event) =>
+                  setIncomeForm((current) => ({ ...current, label: event.target.value }))
+                }
+              />
+            </label>
+
             <label className="field">
               <span>Amount</span>
               <input
@@ -591,12 +885,42 @@ function App() {
             </label>
 
             <label className="field">
-              <span>Date</span>
+              <span>Start date</span>
               <input
                 type="date"
                 value={incomeForm.date}
                 onChange={(event) =>
                   setIncomeForm((current) => ({ ...current, date: event.target.value }))
+                }
+              />
+            </label>
+
+            <label className="field">
+              <span>Repeat</span>
+              <select
+                value={incomeForm.repeat}
+                onChange={(event) =>
+                  setIncomeForm((current) => ({ ...current, repeat: event.target.value }))
+                }
+              >
+                {REPEAT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Repeats</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min="1"
+                max="24"
+                value={incomeForm.repeats}
+                onChange={(event) =>
+                  setIncomeForm((current) => ({ ...current, repeats: event.target.value }))
                 }
               />
             </label>
@@ -620,6 +944,7 @@ function App() {
                     <div>
                       <p className="entry-main">{formatCurrency(entry.amount)}</p>
                       <p className="entry-meta">
+                        {entry.label ? `${entry.label} — ` : ""}
                         {formatDateLabel(entry.date)}
                         {isInCurrentMonth(entry.date, currentMonthKey) ? " — This month" : ""}
                       </p>
@@ -638,13 +963,26 @@ function App() {
           </div>
         </section>
 
-        <section className="card" ref={billsRef}>
+        <section className="card" id="bills-form" ref={billsRef}>
           <div className="section-head">
             <div>
               <p className="section-label">Bills</p>
               <h2>Bills coming up</h2>
             </div>
             <div className="section-total">{formatCurrency(totals.totalBills)}</div>
+          </div>
+
+          <div className="preset-row">
+            {BILL_PRESETS.map((preset) => (
+              <button
+                key={preset.label}
+                className="preset-chip"
+                type="button"
+                onClick={() => applyBillPreset(preset)}
+              >
+                {preset.label}
+              </button>
+            ))}
           </div>
 
           <form className="entry-form bill-form" onSubmit={addBill}>
@@ -676,12 +1014,42 @@ function App() {
             </label>
 
             <label className="field">
-              <span>Due date</span>
+              <span>Start date</span>
               <input
                 type="date"
                 value={billForm.dueDate}
                 onChange={(event) =>
                   setBillForm((current) => ({ ...current, dueDate: event.target.value }))
+                }
+              />
+            </label>
+
+            <label className="field">
+              <span>Repeat</span>
+              <select
+                value={billForm.repeat}
+                onChange={(event) =>
+                  setBillForm((current) => ({ ...current, repeat: event.target.value }))
+                }
+              >
+                {REPEAT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="field">
+              <span>Repeats</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min="1"
+                max="24"
+                value={billForm.repeats}
+                onChange={(event) =>
+                  setBillForm((current) => ({ ...current, repeats: event.target.value }))
                 }
               />
             </label>
@@ -725,6 +1093,19 @@ function App() {
               <h2>Add spending</h2>
             </div>
             <div className="section-total">{formatCurrency(totals.totalExtra)}</div>
+          </div>
+
+          <div className="preset-row">
+            {SPENDING_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                className="preset-chip"
+                type="button"
+                onClick={() => applySpendingPreset(preset)}
+              >
+                {preset}
+              </button>
+            ))}
           </div>
 
           <form className="entry-form" onSubmit={addSpending}>
@@ -798,6 +1179,21 @@ function App() {
         </section>
 
       </div>
+      <nav className="mobile-nav" aria-label="Quick navigation">
+        <a href="#summary-top">Summary</a>
+        <a href="#income-form">Income</a>
+        <a href="#bills-form">Bills</a>
+        <a href="#spending-form">Spending</a>
+        <a href="#more-section">More</a>
+      </nav>
+      {undoState ? (
+        <div className="undo-toast" role="status" aria-live="polite">
+          <span>Removed.</span>
+          <button type="button" onClick={undoRemove}>
+            Undo
+          </button>
+        </div>
+      ) : null}
     </main>
   );
 }
