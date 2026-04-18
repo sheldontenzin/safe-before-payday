@@ -1,6 +1,11 @@
 const { useEffect, useMemo, useRef, useState } = React;
 
 const STORAGE_KEY = "monthly-money-tracker-v1";
+const NOTIFICATION_PRIVACY_OPTIONS = [
+  { value: "private", label: "Private" },
+  { value: "standard", label: "Standard" },
+  { value: "detailed", label: "Detailed" },
+];
 const REPEAT_OPTIONS = [
   { value: "once", label: "One time" },
   { value: "weekly", label: "Weekly" },
@@ -354,6 +359,10 @@ function loadState() {
       note: "",
       amount: "",
     },
+    notificationSettings: {
+      privacyLevel: "private",
+      spendingReminderEnabled: false,
+    },
   };
 
   try {
@@ -388,6 +397,10 @@ function loadState() {
       lastSpendingValues: {
         note: parsed?.lastSpendingValues?.note ?? "",
         amount: parsed?.lastSpendingValues?.amount ?? "",
+      },
+      notificationSettings: {
+        privacyLevel: parsed?.notificationSettings?.privacyLevel ?? "private",
+        spendingReminderEnabled: Boolean(parsed?.notificationSettings?.spendingReminderEnabled),
       },
     };
   } catch (error) {
@@ -919,6 +932,91 @@ function App() {
 
   const monthlySnapshot = getMonthlySnapshot();
   const headsUpMessages = getHeadsUpMessages();
+  const nextUpcomingBill = upcomingBills[0] ?? null;
+
+  function getReminderPreview() {
+    const privacyLevel = trackerState.notificationSettings.privacyLevel;
+
+    const billMessage = (() => {
+      if (privacyLevel === "private") {
+        return "You have a reminder in Money Left";
+      }
+
+      if (privacyLevel === "standard") {
+        return "A bill reminder is coming up";
+      }
+
+      if (nextUpcomingBill) {
+        return `${nextUpcomingBill.name} is due ${nextUpcomingBill.dateLabel}`;
+      }
+
+      return "A bill reminder is coming up";
+    })();
+
+    const monthlyMessage = (() => {
+      if (privacyLevel === "private") {
+        return "Check your plan for this week";
+      }
+
+      if (privacyLevel === "standard") {
+        return "Time to check your entries";
+      }
+
+      if (forecast.firstNegativeDate) {
+        return `Money may get low before ${formatDateLabel(forecast.firstNegativeDate)}`;
+      }
+
+      if (monthlyRemaining < 0) {
+        return `You'll be short ${formatCurrency(Math.abs(monthlyRemaining))} this month`;
+      }
+
+      if (monthlyRemaining > 0) {
+        return `You'll save ${formatCurrency(monthlyRemaining)} this month`;
+      }
+
+      return "Review this month's updates";
+    })();
+
+    const spendingMessage = (() => {
+      if (!trackerState.notificationSettings.spendingReminderEnabled) {
+        return "";
+      }
+
+      if (privacyLevel === "private") {
+        return "Review today's updates";
+      }
+
+      if (privacyLevel === "standard") {
+        return "Time to check your entries";
+      }
+
+      return "Add today's expenses when you're ready";
+    })();
+
+    return [billMessage, monthlyMessage, spendingMessage].filter(Boolean);
+  }
+
+  function updateNotificationPrivacy(value) {
+    setTrackerState((current) => ({
+      ...current,
+      notificationSettings: {
+        ...current.notificationSettings,
+        privacyLevel: value,
+      },
+    }));
+  }
+
+  function updateSpendingReminder(enabled) {
+    setTrackerState((current) => ({
+      ...current,
+      notificationSettings: {
+        ...current.notificationSettings,
+        spendingReminderEnabled: enabled,
+      },
+    }));
+  }
+
+  const reminderPreview = getReminderPreview();
 
   return (
     <main className="money-app">
@@ -1050,6 +1148,57 @@ function App() {
               onChange={(event) => updateCurrentBalance(event.target.value)}
             />
           </label>
+        </section>
+
+        <section className="card">
+          <div className="section-head">
+            <div>
+              <p className="section-label">Reminders</p>
+              <h2>Notification privacy</h2>
+            </div>
+          </div>
+
+          <p className="section-helper">Private is the default, so lock-screen reminders stay low-key.</p>
+
+          <div className="privacy-row" role="radiogroup" aria-label="Notification privacy">
+            {NOTIFICATION_PRIVACY_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`privacy-chip ${
+                  trackerState.notificationSettings.privacyLevel === option.value ? "active" : ""
+                }`}
+                onClick={() => updateNotificationPrivacy(option.value)}
+                aria-pressed={trackerState.notificationSettings.privacyLevel === option.value}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          <label className="toggle-row">
+            <div>
+              <p className="toggle-title">Gentle expense reminders</p>
+              <p className="toggle-note">Easy to turn off any time.</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={trackerState.notificationSettings.spendingReminderEnabled}
+              onChange={(event) => updateSpendingReminder(event.target.checked)}
+            />
+          </label>
+
+          <div className="list-block">
+            <p className="list-title">Preview</p>
+            <p className="list-help">Details stay inside the app unless you choose a more detailed style.</p>
+            <ul className="notification-preview-list">
+              {reminderPreview.map((message) => (
+                <li key={message} className="notification-preview-item">
+                  {message}
+                </li>
+              ))}
+            </ul>
+          </div>
         </section>
 
         <section className="card" id="income-form" ref={incomeRef}>
