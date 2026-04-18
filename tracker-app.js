@@ -324,21 +324,33 @@ function App() {
   }, []);
 
   const currentMonthKey = getCurrentMonthKey();
+  const todayValue = getTodayValue();
   const incomeThisMonth = trackerState.incomeEntries.filter((entry) => isInCurrentMonth(entry.date, currentMonthKey));
 
   const totals = useMemo(() => {
     const currentBalance = clampMoney(Number(trackerState.currentBalance) || 0);
+    const upcomingIncomeEntries = trackerState.incomeEntries.filter((entry) => entry.date > todayValue);
+    const billsThisMonth = trackerState.fixedExpenses.filter((bill) => isInCurrentMonth(bill.dueDate, currentMonthKey));
+    const upcomingBillEntries = trackerState.fixedExpenses.filter((bill) => bill.dueDate > todayValue);
+    const spendingThisMonth = trackerState.extraExpenses.filter((entry) => isInCurrentMonth(entry.date, currentMonthKey));
+    const upcomingSpendingEntries = trackerState.extraExpenses.filter((entry) => entry.date > todayValue);
     const totalIncome = clampMoney(
-      trackerState.incomeEntries.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0)
+      upcomingIncomeEntries.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0)
     );
     const incomeThisMonthTotal = clampMoney(
       incomeThisMonth.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0)
     );
     const totalBills = clampMoney(
-      trackerState.fixedExpenses.reduce((sum, bill) => sum + (Number(bill.amount) || 0), 0)
+      upcomingBillEntries.reduce((sum, bill) => sum + (Number(bill.amount) || 0), 0)
+    );
+    const totalBillsThisMonth = clampMoney(
+      billsThisMonth.reduce((sum, bill) => sum + (Number(bill.amount) || 0), 0)
     );
     const totalExtra = clampMoney(
-      trackerState.extraExpenses.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0)
+      upcomingSpendingEntries.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0)
+    );
+    const totalExtraThisMonth = clampMoney(
+      spendingThisMonth.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0)
     );
     const totalSpent = clampMoney(totalBills + totalExtra);
     const availableMoney = clampMoney(currentBalance + totalIncome - totalSpent);
@@ -348,16 +360,21 @@ function App() {
       totalIncome,
       incomeThisMonthTotal,
       totalBills,
+      totalBillsThisMonth,
       totalExtra,
+      totalExtraThisMonth,
       totalSpent,
       availableMoney,
     };
-  }, [incomeThisMonth, trackerState.currentBalance, trackerState.extraExpenses, trackerState.fixedExpenses, trackerState.incomeEntries]);
+  }, [currentMonthKey, incomeThisMonth, todayValue, trackerState.currentBalance, trackerState.extraExpenses, trackerState.fixedExpenses, trackerState.incomeEntries]);
 
-  const monthlyRemaining = clampMoney(totals.incomeThisMonthTotal - totals.totalExtra - totals.totalBills);
+  const monthlyRemaining = clampMoney(
+    totals.incomeThisMonthTotal - totals.totalExtraThisMonth - totals.totalBillsThisMonth
+  );
 
   const upcomingBills = useMemo(() => {
     return [...trackerState.fixedExpenses]
+      .filter((bill) => bill.dueDate > todayValue)
       .map((bill) => {
         const dueDate = new Date(`${bill.dueDate}T00:00:00`);
 
@@ -371,10 +388,9 @@ function App() {
         };
       })
       .sort((a, b) => a.dueDate - b.dueDate);
-  }, [trackerState.fixedExpenses]);
+  }, [todayValue, trackerState.fixedExpenses]);
 
   const forecast = useMemo(() => {
-    const todayValue = getTodayValue();
     const startingBalance = clampMoney(Number(trackerState.currentBalance) || 0);
     const futureEvents = [
       ...trackerState.incomeEntries.map((entry) => ({
@@ -396,7 +412,7 @@ function App() {
         sortOrder: 1,
       })),
     ]
-      .filter((event) => event.date && event.date >= todayValue)
+      .filter((event) => event.date && event.date > todayValue)
       .sort((a, b) => {
         if (a.date !== b.date) {
           return a.date > b.date ? 1 : -1;
@@ -432,7 +448,7 @@ function App() {
       firstTightDate,
       hasFutureEvents: futureEvents.length > 0,
     };
-  }, [trackerState.currentBalance, trackerState.extraExpenses, trackerState.fixedExpenses, trackerState.incomeEntries]);
+  }, [todayValue, trackerState.currentBalance, trackerState.extraExpenses, trackerState.fixedExpenses, trackerState.incomeEntries]);
 
   const allIncomeEntries = [...trackerState.incomeEntries].sort((a, b) => (a.date < b.date ? 1 : -1));
   const recentSpending = [...trackerState.extraExpenses].sort((a, b) => (a.date < b.date ? 1 : -1));
@@ -717,7 +733,7 @@ function App() {
             <p className="main-label">Available cash</p>
             <p className="main-value">{formatCurrency(totals.availableMoney)}</p>
             <p className="soft-note">
-              Includes current balance and all scheduled income, minus spending.
+              Includes your current balance and upcoming income, minus upcoming bills and spending.
             </p>
 
             <div className="main-summary">
@@ -734,7 +750,7 @@ function App() {
                 type="button"
                 onClick={() => scrollToSection(incomeRef)}
               >
-                <span>Scheduled income</span>
+                <span>Upcoming income</span>
                 <strong>{formatCurrency(totals.totalIncome)}</strong>
               </button>
               <button
@@ -742,7 +758,7 @@ function App() {
                 type="button"
                 onClick={() => scrollToSection(spendingRef)}
               >
-                <span>Spent</span>
+                <span>Upcoming spending</span>
                 <strong>{formatCurrency(totals.totalSpent)}</strong>
               </button>
             </div>
@@ -753,7 +769,7 @@ function App() {
                 type="button"
                 onClick={() => scrollToSection(billsRef)}
               >
-                <p>Bills total</p>
+                <p>Upcoming bills</p>
                 <strong>{formatCurrency(totals.totalBills)}</strong>
               </button>
               <button
@@ -761,7 +777,7 @@ function App() {
                 type="button"
                 onClick={() => scrollToSection(spendingRef)}
               >
-                <p>Other spending</p>
+                <p>Other upcoming spending</p>
                 <strong>{formatCurrency(totals.totalExtra)}</strong>
               </button>
             </div>
@@ -842,7 +858,7 @@ function App() {
             <div className="section-total">{formatCurrency(totals.incomeThisMonthTotal)}</div>
           </div>
 
-          <p className="section-helper">Add expected income (salary, freelance, etc.)</p>
+          <p className="section-helper">Add upcoming income you still expect to receive.</p>
           <div className="preset-row">
             {INCOME_PRESETS.map((preset) => (
               <button
@@ -931,9 +947,9 @@ function App() {
           </form>
 
           <div className="list-block">
-            <p className="list-title">All scheduled income</p>
+            <p className="list-title">All income entered</p>
             <p className="list-help">
-              Available cash includes all scheduled income in this list.
+              Available cash only adds future income from this list.
             </p>
             {allIncomeEntries.length === 0 ? (
               <p className="list-empty">No income added yet.</p>
