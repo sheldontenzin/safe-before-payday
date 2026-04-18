@@ -1544,7 +1544,6 @@ function App() {
         <a href="#income-form">Income</a>
         <a href="#bills-form">Bills</a>
         <a href="#spending-form">Spending</a>
-        <a href="#more-section">More</a>
       </nav>
       {undoState ? (
         <div className="undo-toast" role="status" aria-live="polite">
