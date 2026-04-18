@@ -170,6 +170,30 @@ p {
   border: 1px solid var(--line);
 }
 
+.summary-action {
+  width: 100%;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.summary-action:hover {
+  background: rgba(255, 255, 255, 0.88);
+  border-color: rgba(127, 175, 143, 0.35);
+}
+
+.summary-action:active {
+  transform: scale(0.985);
+}
+
+.summary-action:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(127, 175, 143, 0.18);
+  border-color: rgba(127, 175, 143, 0.45);
+}
+
 .summary-pill strong,
 .sub-card strong,
 .section-total {

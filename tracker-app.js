@@ -1,4 +1,4 @@
-const { useEffect, useMemo, useState } = React;
+const { useEffect, useMemo, useRef, useState } = React;
 
 const STORAGE_KEY = "monthly-money-tracker-v1";
 const ENCOURAGING_MESSAGES = [
@@ -163,6 +163,10 @@ function App() {
     note: "",
     date: getTodayValue(),
   });
+  const balanceRef = useRef(null);
+  const incomeRef = useRef(null);
+  const spendingRef = useRef(null);
+  const billsRef = useRef(null);
 
   useEffect(() => {
     saveState(trackerState);
@@ -380,6 +384,10 @@ function App() {
     }));
   }
 
+  function scrollToSection(sectionRef) {
+    sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   function getSupportMessage() {
     if (totals.currentBalance === 0 && totals.totalIncome === 0) {
       return "Let's add your first income 🌼";
@@ -438,29 +446,49 @@ function App() {
             <p className="soft-note">{getSupportMessage()}</p>
 
             <div className="main-summary">
-              <div className="summary-pill">
+              <button
+                className="summary-pill summary-action"
+                type="button"
+                onClick={() => scrollToSection(balanceRef)}
+              >
                 <span>Current balance</span>
                 <strong>{formatCurrency(totals.currentBalance)}</strong>
-              </div>
-              <div className="summary-pill">
+              </button>
+              <button
+                className="summary-pill summary-action"
+                type="button"
+                onClick={() => scrollToSection(incomeRef)}
+              >
                 <span>Income</span>
                 <strong>{formatCurrency(totals.totalIncome)}</strong>
-              </div>
-              <div className="summary-pill">
+              </button>
+              <button
+                className="summary-pill summary-action"
+                type="button"
+                onClick={() => scrollToSection(spendingRef)}
+              >
                 <span>Spent</span>
                 <strong>{formatCurrency(totals.totalSpent)}</strong>
-              </div>
+              </button>
             </div>
 
             <div className="sub-summary">
-              <div className="sub-card">
+              <button
+                className="sub-card summary-action"
+                type="button"
+                onClick={() => scrollToSection(billsRef)}
+              >
                 <p>Bills total</p>
                 <strong>{formatCurrency(totals.totalBills)}</strong>
-              </div>
-              <div className="sub-card">
+              </button>
+              <button
+                className="sub-card summary-action"
+                type="button"
+                onClick={() => scrollToSection(spendingRef)}
+              >
                 <p>Other spending</p>
                 <strong>{formatCurrency(totals.totalExtra)}</strong>
-              </div>
+              </button>
             </div>
           </section>
         )}
@@ -490,7 +518,7 @@ function App() {
           </a>
         </div>
 
-        <section className="card">
+        <section className="card" ref={balanceRef}>
           <div className="section-head">
             <div>
               <p className="section-label">Right now</p>
@@ -524,7 +552,7 @@ function App() {
           </label>
         </section>
 
-        <section className="card" id="income-form">
+        <section className="card" id="income-form" ref={incomeRef}>
           <div className="section-head">
             <div>
               <p className="section-label">Money in</p>
@@ -597,7 +625,7 @@ function App() {
           </div>
         </section>
 
-        <section className="card">
+        <section className="card" ref={billsRef}>
           <div className="section-head">
             <div>
               <p className="section-label">Bills</p>
@@ -677,7 +705,7 @@ function App() {
           )}
         </section>
 
-        <section className="card" id="spending-form">
+        <section className="card" id="spending-form" ref={spendingRef}>
           <div className="section-head">
             <div>
               <p className="section-label">Money out</p>
