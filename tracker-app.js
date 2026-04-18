@@ -360,7 +360,7 @@ function App() {
     }
 
     if (monthlyRemaining > 0) {
-      return `You have ${formatCurrency(monthlyRemaining)} available`;
+      return `You'll save ${formatCurrency(monthlyRemaining)} this month`;
     }
 
     return "You're on track this month.";
@@ -377,7 +377,7 @@ function App() {
     }
 
     return {
-      headline: `You have ${formatCurrency(monthlyRemaining)} left this month`,
+      headline: `You'll save ${formatCurrency(monthlyRemaining)} this month`,
       instruction: `Keep spending under ${formatCurrency(monthlyRemaining)} this month`,
     };
   }
