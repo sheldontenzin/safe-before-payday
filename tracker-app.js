@@ -55,6 +55,36 @@ function clampMoney(value) {
   return Math.round(value * 100) / 100;
 }
 
+function normalizeBillEntry(entry) {
+  if (entry?.dueDate) {
+    return {
+      id: entry.id ?? createId("bill"),
+      name: typeof entry.name === "string" ? entry.name : "",
+      amount: Number(entry.amount) || 0,
+      dueDate: entry.dueDate,
+    };
+  }
+
+  if (entry?.day) {
+    const now = new Date();
+    const day = Math.max(1, Math.min(31, Number(entry.day) || 1));
+    const date = new Date(now.getFullYear(), now.getMonth(), day);
+    return {
+      id: entry.id ?? createId("bill"),
+      name: typeof entry.name === "string" ? entry.name : "",
+      amount: Number(entry.amount) || 0,
+      dueDate: `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+    };
+  }
+
+  return {
+    id: entry?.id ?? createId("bill"),
+    name: typeof entry?.name === "string" ? entry.name : "",
+    amount: Number(entry?.amount) || 0,
+    dueDate: getTodayValue(),
+  };
+}
+
 function loadState() {
   const fallback = {
     currentBalance: "",
@@ -75,7 +105,9 @@ function loadState() {
       currentBalance: parsed?.currentBalance ?? "",
       estimatedMonthlyIncome: parsed?.estimatedMonthlyIncome ?? "",
       incomeEntries: Array.isArray(parsed?.incomeEntries) ? parsed.incomeEntries : [],
-      fixedExpenses: Array.isArray(parsed?.fixedExpenses) ? parsed.fixedExpenses : [],
+      fixedExpenses: Array.isArray(parsed?.fixedExpenses)
+        ? parsed.fixedExpenses.map(normalizeBillEntry)
+        : [],
       extraExpenses: Array.isArray(parsed?.extraExpenses) ? parsed.extraExpenses : [],
     };
   } catch (error) {
@@ -125,7 +157,8 @@ function App() {
   const [trackerState, setTrackerState] = useState(loadState);
   const [messageIndex, setMessageIndex] = useState(0);
   const [incomeForm, setIncomeForm] = useState({ amount: "", date: getTodayValue() });
-  const [billForm, setBillForm] = useState({ name: "", amount: "", day: "" });
+  const [billForm, setBillForm] = useState({ name: "", amount: "", dueDate: getTodayValue() });
+  const [billDrafts, setBillDrafts] = useState([]);
   const [spendingForm, setSpendingForm] = useState({
     amount: "",
     note: "",
@@ -146,7 +179,6 @@ function App() {
 
   const currentMonthKey = getCurrentMonthKey();
   const incomeThisMonth = trackerState.incomeEntries.filter((entry) => isInCurrentMonth(entry.date, currentMonthKey));
-  const spendingThisMonth = trackerState.extraExpenses.filter((entry) => isInCurrentMonth(entry.date, currentMonthKey));
 
   const totals = useMemo(() => {
     const currentBalance = clampMoney(Number(trackerState.currentBalance) || 0);
@@ -177,18 +209,9 @@ function App() {
   }, [incomeThisMonth, trackerState.currentBalance, trackerState.extraExpenses, trackerState.fixedExpenses, trackerState.incomeEntries]);
 
   const upcomingBills = useMemo(() => {
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth();
-
     return [...trackerState.fixedExpenses]
       .map((bill) => {
-        const rawDay = Math.max(1, Math.min(31, Number(bill.day) || 1));
-        let dueDate = new Date(currentYear, currentMonth, rawDay);
-
-        if (dueDate < new Date(currentYear, currentMonth, today.getDate())) {
-          dueDate = new Date(currentYear, currentMonth + 1, rawDay);
-        }
+        const dueDate = new Date(`${bill.dueDate}T00:00:00`);
 
         return {
           ...bill,
@@ -201,6 +224,57 @@ function App() {
       })
       .sort((a, b) => a.dueDate - b.dueDate);
   }, [trackerState.fixedExpenses]);
+
+  const forecast = useMemo(() => {
+    const todayValue = getTodayValue();
+    const startingBalance = clampMoney(Number(trackerState.currentBalance) || 0);
+    const futureEvents = [
+      ...trackerState.incomeEntries.map((entry) => ({
+        date: entry.date,
+        amount: Number(entry.amount) || 0,
+        kind: "income",
+      })),
+      ...trackerState.fixedExpenses.map((bill) => ({
+        date: bill.dueDate,
+        amount: Number(bill.amount) || 0,
+        kind: "bill",
+      })),
+      ...trackerState.extraExpenses.map((entry) => ({
+        date: entry.date,
+        amount: Number(entry.amount) || 0,
+        kind: "spending",
+      })),
+    ]
+      .filter((event) => event.date && event.date >= todayValue)
+      .sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
+
+    let runningBalance = startingBalance;
+    let firstNegativeDate = null;
+    let firstTightDate = null;
+    const tightThreshold = Math.max(100, startingBalance * 0.2);
+
+    futureEvents.forEach((event) => {
+      if (event.kind === "income") {
+        runningBalance = clampMoney(runningBalance + event.amount);
+      } else {
+        runningBalance = clampMoney(runningBalance - event.amount);
+      }
+
+      if (!firstNegativeDate && runningBalance < 0) {
+        firstNegativeDate = event.date;
+      }
+
+      if (!firstTightDate && runningBalance >= 0 && runningBalance <= tightThreshold) {
+        firstTightDate = event.date;
+      }
+    });
+
+    return {
+      projectedBalance: runningBalance,
+      firstNegativeDate,
+      firstTightDate,
+    };
+  }, [trackerState.currentBalance, trackerState.extraExpenses, trackerState.fixedExpenses, trackerState.incomeEntries]);
 
   const allIncomeEntries = [...trackerState.incomeEntries].sort((a, b) => (a.date < b.date ? 1 : -1));
   const recentSpending = [...trackerState.extraExpenses].sort((a, b) => (a.date < b.date ? 1 : -1));
@@ -242,29 +316,38 @@ function App() {
     setIncomeForm({ amount: "", date: getTodayValue() });
   }
 
-  function addBill(event) {
+  function addBillDraft(event) {
     event.preventDefault();
     const amount = Number(billForm.amount);
-    const day = Number(billForm.day);
 
-    if (!billForm.name.trim() || !amount || amount <= 0 || !day || day < 1 || day > 31) {
+    if (!billForm.name.trim() || !amount || amount <= 0 || !billForm.dueDate) {
+      return;
+    }
+
+    setBillDrafts((current) => [
+      ...current,
+      {
+        id: createId("bill-draft"),
+        name: billForm.name.trim(),
+        amount,
+        dueDate: billForm.dueDate,
+      },
+    ]);
+
+    setBillForm({ name: "", amount: "", dueDate: getTodayValue() });
+  }
+
+  function saveBillDrafts() {
+    if (billDrafts.length === 0) {
       return;
     }
 
     setTrackerState((current) => ({
       ...current,
-      fixedExpenses: [
-        ...current.fixedExpenses,
-        {
-          id: createId("bill"),
-          name: billForm.name.trim(),
-          amount,
-          day,
-        },
-      ],
+      fixedExpenses: [...current.fixedExpenses, ...billDrafts],
     }));
 
-    setBillForm({ name: "", amount: "", day: "" });
+    setBillDrafts([]);
   }
 
   function addSpending(event) {
@@ -298,6 +381,10 @@ function App() {
     }));
   }
 
+  function removeBillDraft(entryId) {
+    setBillDrafts((current) => current.filter((entry) => entry.id !== entryId));
+  }
+
   function getSupportMessage() {
     if (totals.currentBalance === 0 && totals.totalIncome === 0) {
       return "Let's add your first income 🌼";
@@ -312,6 +399,20 @@ function App() {
     }
 
     return "You have money available right now. Small steps are enough.";
+  }
+
+  function getForecastMessage() {
+    if (forecast.firstNegativeDate) {
+      return `You may run low around ${formatDateLabel(forecast.firstNegativeDate)}.`;
+    }
+
+    if (forecast.firstTightDate) {
+      return `Things might be tight in a few days, around ${formatDateLabel(
+        forecast.firstTightDate
+      )}.`;
+    }
+
+    return "You're on track this month.";
   }
 
   return (
@@ -364,6 +465,31 @@ function App() {
             </div>
           </section>
         )}
+
+        <section className="card">
+          <div className="section-head">
+            <div>
+              <p className="section-label">How things look</p>
+              <h2>How things look</h2>
+            </div>
+          </div>
+
+          <div className="insight-card">
+            <p className="insight-copy">{getForecastMessage()}</p>
+            <p className="insight-meta">
+              Looking at your balance today plus dated money in, bills, and spending.
+            </p>
+          </div>
+        </section>
+
+        <div className="inline-actions">
+          <a className="inline-button primary" href="#income-form">
+            Add money
+          </a>
+          <a className="inline-button secondary" href="#spending-form">
+            Add spending
+          </a>
+        </div>
 
         <section className="card">
           <div className="section-head">
@@ -481,7 +607,7 @@ function App() {
             <div className="section-total">{formatCurrency(totals.totalBills)}</div>
           </div>
 
-          <form className="entry-form bill-form" onSubmit={addBill}>
+          <form className="entry-form bill-form" onSubmit={addBillDraft}>
             <label className="field">
               <span>Name</span>
               <input
@@ -510,24 +636,49 @@ function App() {
             </label>
 
             <label className="field">
-              <span>Day</span>
+              <span>Due date</span>
               <input
-                type="number"
-                inputMode="numeric"
-                min="1"
-                max="31"
-                placeholder="1"
-                value={billForm.day}
+                type="date"
+                value={billForm.dueDate}
                 onChange={(event) =>
-                  setBillForm((current) => ({ ...current, day: event.target.value }))
+                  setBillForm((current) => ({ ...current, dueDate: event.target.value }))
                 }
               />
             </label>
 
             <button className="soft-button" type="submit">
-              Save bill
+              Add another bill
             </button>
           </form>
+
+          {billDrafts.length > 0 ? (
+            <div className="list-block">
+              <p className="list-title">Bills to save</p>
+              <ul className="entry-list">
+                {billDrafts.map((bill) => (
+                  <li key={bill.id} className="entry-row">
+                    <div>
+                      <p className="entry-main">{bill.name}</p>
+                      <p className="entry-meta">
+                        {formatCurrency(bill.amount)} — {formatDateLabel(bill.dueDate)}
+                      </p>
+                    </div>
+                    <button
+                      className="ghost-inline"
+                      type="button"
+                      onClick={() => removeBillDraft(bill.id)}
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+
+              <button className="primary-button save-bills-button" type="button" onClick={saveBillDrafts}>
+                Save bills
+              </button>
+            </div>
+          ) : null}
 
           {upcomingBills.length === 0 ? (
             <p className="list-empty">No bills yet. Add one when you're ready.</p>
@@ -633,14 +784,6 @@ function App() {
           )}
         </section>
 
-        <div className="bottom-actions">
-          <a className="bottom-button primary" href="#income-form">
-            Add money
-          </a>
-          <a className="bottom-button secondary" href="#spending-form">
-            Add spending
-          </a>
-        </div>
       </div>
     </main>
   );
