@@ -158,7 +158,6 @@ function App() {
   const [messageIndex, setMessageIndex] = useState(0);
   const [incomeForm, setIncomeForm] = useState({ amount: "", date: getTodayValue() });
   const [billForm, setBillForm] = useState({ name: "", amount: "", dueDate: getTodayValue() });
-  const [billDrafts, setBillDrafts] = useState([]);
   const [spendingForm, setSpendingForm] = useState({
     amount: "",
     note: "",
@@ -316,7 +315,7 @@ function App() {
     setIncomeForm({ amount: "", date: getTodayValue() });
   }
 
-  function addBillDraft(event) {
+  function addBill(event) {
     event.preventDefault();
     const amount = Number(billForm.amount);
 
@@ -324,30 +323,20 @@ function App() {
       return;
     }
 
-    setBillDrafts((current) => [
-      ...current,
-      {
-        id: createId("bill-draft"),
-        name: billForm.name.trim(),
-        amount,
-        dueDate: billForm.dueDate,
-      },
-    ]);
-
-    setBillForm({ name: "", amount: "", dueDate: getTodayValue() });
-  }
-
-  function saveBillDrafts() {
-    if (billDrafts.length === 0) {
-      return;
-    }
-
     setTrackerState((current) => ({
       ...current,
-      fixedExpenses: [...current.fixedExpenses, ...billDrafts],
+      fixedExpenses: [
+        {
+          id: createId("bill"),
+          name: billForm.name.trim(),
+          amount,
+          dueDate: billForm.dueDate,
+        },
+        ...current.fixedExpenses,
+      ],
     }));
 
-    setBillDrafts([]);
+    setBillForm({ name: "", amount: "", dueDate: getTodayValue() });
   }
 
   function addSpending(event) {
@@ -379,10 +368,6 @@ function App() {
       ...current,
       [collectionKey]: current[collectionKey].filter((entry) => entry.id !== entryId),
     }));
-  }
-
-  function removeBillDraft(entryId) {
-    setBillDrafts((current) => current.filter((entry) => entry.id !== entryId));
   }
 
   function getSupportMessage() {
@@ -607,7 +592,7 @@ function App() {
             <div className="section-total">{formatCurrency(totals.totalBills)}</div>
           </div>
 
-          <form className="entry-form bill-form" onSubmit={addBillDraft}>
+          <form className="entry-form bill-form" onSubmit={addBill}>
             <label className="field">
               <span>Name</span>
               <input
@@ -647,38 +632,11 @@ function App() {
             </label>
 
             <button className="soft-button" type="submit">
-              Add another bill
+              Add bill
             </button>
           </form>
 
-          {billDrafts.length > 0 ? (
-            <div className="list-block">
-              <p className="list-title">Bills to save</p>
-              <ul className="entry-list">
-                {billDrafts.map((bill) => (
-                  <li key={bill.id} className="entry-row">
-                    <div>
-                      <p className="entry-main">{bill.name}</p>
-                      <p className="entry-meta">
-                        {formatCurrency(bill.amount)} — {formatDateLabel(bill.dueDate)}
-                      </p>
-                    </div>
-                    <button
-                      className="ghost-inline"
-                      type="button"
-                      onClick={() => removeBillDraft(bill.id)}
-                    >
-                      Remove
-                    </button>
-                  </li>
-                ))}
-              </ul>
-
-              <button className="primary-button save-bills-button" type="button" onClick={saveBillDrafts}>
-                Save bills
-              </button>
-            </div>
-          ) : null}
+          <p className="list-help">Each bill saves right away and is counted on its own due date.</p>
 
           {upcomingBills.length === 0 ? (
             <p className="list-empty">No bills yet. Add one when you're ready.</p>

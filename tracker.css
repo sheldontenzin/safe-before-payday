@@ -354,11 +354,6 @@ p {
   color: var(--text);
 }
 
-.save-bills-button {
-  width: 100%;
-  margin-top: 14px;
-}
-
 .entry-row {
   display: flex;
   align-items: center;
