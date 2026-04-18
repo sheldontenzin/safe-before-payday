@@ -306,33 +306,36 @@ p {
 }
 
 .insight-card {
-  padding: 16px 18px;
+  padding: 18px 20px;
   border-radius: var(--radius-lg);
   background: rgba(232, 239, 230, 0.6);
   border: 1px solid var(--line);
+  margin-top: 6px;
 }
 
 .insight-copy {
-  font-size: 1rem;
+  font-size: 1.02rem;
   font-weight: 700;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 .insight-meta {
-  margin-top: 8px;
+  margin-top: 10px;
   color: var(--muted);
   font-size: 0.88rem;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 .inline-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 14px;
+  margin-top: 2px;
+  margin-bottom: 6px;
 }
 
 .inline-button {
-  min-height: 56px;
+  min-height: 58px;
   display: inline-flex;
   align-items: center;
   justify-content: center;

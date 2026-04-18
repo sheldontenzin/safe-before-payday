@@ -469,8 +469,8 @@ function App() {
         <section className="card">
           <div className="section-head">
             <div>
-              <p className="section-label">How things look</p>
-              <h2>How things look</h2>
+              <p className="section-label">Looking ahead</p>
+              <h2>This month</h2>
             </div>
           </div>
 
