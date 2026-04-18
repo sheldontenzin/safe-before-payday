@@ -193,6 +193,7 @@ function App() {
   }, [trackerState.fixedExpenses]);
 
   const recentIncome = [...incomeThisMonth].sort((a, b) => (a.date < b.date ? 1 : -1));
+  const allIncomeEntries = [...trackerState.incomeEntries].sort((a, b) => (a.date < b.date ? 1 : -1));
   const recentSpending = [...spendingThisMonth].sort((a, b) => (a.date < b.date ? 1 : -1));
 
   function updateEstimatedIncome(value) {
@@ -407,16 +408,22 @@ function App() {
           </form>
 
           <div className="list-block">
-            <p className="list-title">Income this month</p>
-            {recentIncome.length === 0 ? (
+            <p className="list-title">All money added</p>
+            <p className="list-help">
+              This month's total is at the top. Every income entry stays in this list.
+            </p>
+            {allIncomeEntries.length === 0 ? (
               <p className="list-empty">Let's add your first income 🌼</p>
             ) : (
               <ul className="entry-list">
-                {recentIncome.map((entry) => (
+                {allIncomeEntries.map((entry) => (
                   <li key={entry.id} className="entry-row">
                     <div>
                       <p className="entry-main">{formatCurrency(entry.amount)}</p>
-                      <p className="entry-meta">{formatDateLabel(entry.date)}</p>
+                      <p className="entry-meta">
+                        {formatDateLabel(entry.date)}
+                        {isInCurrentMonth(entry.date, currentMonthKey) ? " — This month" : ""}
+                      </p>
                     </div>
                     <button
                       className="ghost-inline"

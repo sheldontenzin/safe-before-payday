@@ -259,6 +259,14 @@ p {
   margin-bottom: 10px;
 }
 
+.list-help {
+  margin-top: -2px;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
 .list-empty {
   margin-top: 10px;
   color: var(--muted);
