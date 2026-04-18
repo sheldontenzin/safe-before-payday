@@ -383,6 +383,8 @@ function App() {
   function getHeadsUpMessages() {
     const messages = [];
     const tightMonthThreshold = Math.max(150, totals.incomeThisMonthTotal * 0.1);
+    const estimatedIncome = Number(trackerState.estimatedMonthlyIncome) || 0;
+    const partialIncomeIncluded = estimatedIncome > 0 && totals.incomeThisMonthTotal + 50 < estimatedIncome;
 
     if (forecast.firstNegativeDate) {
       messages.push(`You may be low on money around ${formatDateLabel(forecast.firstNegativeDate)}.`);
@@ -411,9 +413,16 @@ function App() {
       messages.push("Several bills are close together this week.");
     }
 
-    const estimatedIncome = Number(trackerState.estimatedMonthlyIncome) || 0;
-    if (estimatedIncome > 0 && totals.incomeThisMonthTotal + 50 < estimatedIncome) {
+    if (partialIncomeIncluded) {
       messages.push("Only part of this month's income is included.");
+
+      if (totals.availableMoney >= 0 && monthlyRemaining < 0) {
+        messages.push("So far, your current balance still covers this month.");
+      } else if (totals.availableMoney >= 0) {
+        messages.push("You may still have enough in your account to cover this month.");
+      }
+    } else if (totals.availableMoney >= 0 && monthlyRemaining < 0) {
+      messages.push("Bills are covered so far.");
     }
 
     return messages;
