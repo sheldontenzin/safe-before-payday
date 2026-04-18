@@ -1,7 +1,7 @@
 const { useEffect, useMemo, useRef, useState } = React;
 
 const STORAGE_KEY = "monthly-money-tracker-v1";
-const COVER_IMAGE = "/app/cover.png";
+const LOGO_IMAGE = "/app/logo.png";
 const ENCOURAGING_MESSAGES = [
   "You're doing okay 🌿",
   "Let's take a look together",
@@ -406,25 +406,14 @@ function App() {
     <main className="money-app">
       <div className="app-stack">
         <section className="hero-card">
-          <img
-            className="hero-image"
-            src={COVER_IMAGE}
-            alt=""
-            aria-hidden="true"
-          />
-          <div className="hero-overlay" aria-hidden="true"></div>
-          <div className="hero-content">
-            <div className="hero-row">
-              <div>
-                <p className="hero-label">Monthly money tracker</p>
-                <h1>{ENCOURAGING_MESSAGES[messageIndex]}</h1>
-              </div>
-              <div className="hero-logo-shell" aria-hidden="true">
-                <img className="hero-logo" src={COVER_IMAGE} alt="" />
-              </div>
+          <div className="hero-row">
+            <div>
+              <p className="hero-label">Monthly money tracker</p>
+              <h1>{ENCOURAGING_MESSAGES[messageIndex]}</h1>
             </div>
-            <p className="hero-copy">Money in. Money out. A simple look at what is left.</p>
+            <img className="hero-logo" src={LOGO_IMAGE} alt="" aria-hidden="true" />
           </div>
+          <p className="hero-copy">Money in. Money out. A simple look at what is left.</p>
         </section>
 
         {totals.currentBalance === 0 && totals.totalIncome === 0 ? (

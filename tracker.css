@@ -60,7 +60,7 @@ p {
 
 .app-stack {
   display: grid;
-  gap: 18px;
+  gap: 20px;
 }
 
 .hero-card,
@@ -74,10 +74,8 @@ p {
 }
 
 .hero-card {
-  position: relative;
-  overflow: hidden;
-  min-height: 320px;
-  padding: 0;
+  padding: 28px 24px;
+  background: rgba(255, 255, 255, 0.94);
 }
 
 .hero-row,
@@ -98,71 +96,30 @@ p {
 }
 
 .hero-card h1 {
-  margin-top: 8px;
+  margin-top: 10px;
   max-width: 14ch;
   font-size: clamp(2rem, 7vw, 2.8rem);
-  line-height: 1.03;
+  line-height: 1.06;
   letter-spacing: -0.04em;
   color: #243129;
 }
 
 .hero-copy {
-  margin-top: 14px;
+  margin-top: 16px;
   max-width: 30ch;
   color: rgba(47, 62, 52, 0.82);
-  line-height: 1.7;
-}
-
-.hero-image,
-.hero-overlay {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.hero-image {
-  object-fit: cover;
-}
-
-.hero-overlay {
-  background:
-    linear-gradient(180deg, rgba(246, 244, 239, 0.18) 0%, rgba(246, 244, 239, 0.26) 24%, rgba(246, 244, 239, 0.78) 62%, rgba(246, 244, 239, 0.96) 100%),
-    linear-gradient(90deg, rgba(246, 244, 239, 0.92) 0%, rgba(246, 244, 239, 0.55) 42%, rgba(246, 244, 239, 0.2) 100%);
-}
-
-.hero-content {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  min-height: 320px;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: 22px 20px;
-}
-
-.hero-logo-shell {
-  display: inline-flex;
-  width: 40px;
-  height: 40px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 12px 24px rgba(80, 96, 86, 0.12);
+  line-height: 1.72;
 }
 
 .hero-logo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  object-fit: contain;
 }
 
 .empty-state {
-  padding: 26px 22px;
+  padding: 28px 24px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(232, 239, 230, 0.74));
 }
 
@@ -178,7 +135,7 @@ p {
 }
 
 .main-card {
-  padding: 26px 22px;
+  padding: 28px 24px;
   background: linear-gradient(180deg, rgba(232, 239, 230, 0.9), rgba(255, 255, 255, 0.94));
 }
 
@@ -201,7 +158,7 @@ p {
 .sub-summary {
   display: grid;
   gap: 12px;
-  margin-top: 18px;
+  margin-top: 20px;
 }
 
 .summary-pill,
@@ -210,7 +167,7 @@ p {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 16px 18px;
   border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid var(--line);
@@ -248,13 +205,13 @@ p {
 }
 
 .card {
-  padding: 22px 20px;
+  padding: 28px 24px;
 }
 
 .balance-field {
   display: grid;
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 20px;
 }
 
 .balance-field span {
@@ -277,7 +234,7 @@ p {
 
 .mini-field {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   width: min(100%, 220px);
 }
 
@@ -289,8 +246,8 @@ p {
 .mini-field input,
 .field input {
   width: 100%;
-  min-height: 52px;
-  padding: 14px 15px;
+  min-height: 54px;
+  padding: 14px 16px;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--surface-strong);
@@ -299,7 +256,7 @@ p {
 
 .field {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .field span {
@@ -309,13 +266,21 @@ p {
 
 .entry-form {
   display: grid;
-  gap: 14px;
-  margin-top: 18px;
+  gap: 16px;
+  margin-top: 20px;
 }
 
 .bill-form {
-  grid-template-columns: 1.1fr 0.8fr 1fr;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr) minmax(0, 1fr);
   align-items: end;
+  column-gap: 16px;
+  row-gap: 18px;
+}
+
+.bill-form .soft-button {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin-top: 2px;
 }
 
 .primary-button,
@@ -330,8 +295,8 @@ p {
 
 .primary-button,
 .soft-button {
-  min-height: 54px;
-  padding: 0 18px;
+  min-height: 56px;
+  padding: 0 20px;
   font-weight: 700;
 }
 
@@ -346,41 +311,41 @@ p {
 }
 
 .list-block {
-  margin-top: 18px;
+  margin-top: 20px;
 }
 
 .list-title {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .list-help {
-  margin-top: -2px;
-  margin-bottom: 10px;
+  margin-top: 14px;
+  margin-bottom: 0;
   color: var(--muted);
   font-size: 0.88rem;
   line-height: 1.5;
 }
 
 .list-empty {
-  margin-top: 10px;
+  margin-top: 16px;
   color: var(--muted);
   line-height: 1.6;
 }
 
 .entry-list {
   list-style: none;
-  margin: 14px 0 0;
+  margin: 16px 0 0;
   padding: 0;
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .insight-card {
-  padding: 18px 20px;
+  padding: 20px 22px;
   border-radius: var(--radius-lg);
   background: rgba(232, 239, 230, 0.6);
   border: 1px solid var(--line);
-  margin-top: 6px;
+  margin-top: 10px;
 }
 
 .insight-copy {
@@ -400,12 +365,12 @@ p {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
-  margin-top: 2px;
-  margin-bottom: 6px;
+  margin-top: 4px;
+  margin-bottom: 8px;
 }
 
 .inline-button {
-  min-height: 58px;
+  min-height: 60px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -429,7 +394,7 @@ p {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 15px;
+  padding: 16px 16px;
   border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid var(--line);
@@ -474,17 +439,6 @@ p {
   }
 }
 
-@media (min-width: 721px) {
-  .hero-card,
-  .hero-content {
-    min-height: 360px;
-  }
-
-  .hero-content {
-    padding: 24px 24px 26px;
-  }
-}
-
 @media (max-width: 520px) {
   .money-app {
     padding-left: 14px;
@@ -500,11 +454,6 @@ p {
 
   .hero-card h1 {
     font-size: 1.78rem;
-  }
-
-  .hero-card,
-  .hero-content {
-    min-height: 292px;
   }
 
   .main-value {
