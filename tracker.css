@@ -74,6 +74,10 @@ p {
   box-shadow: var(--shadow);
 }
 
+.section-panel.is-hidden {
+  display: none;
+}
+
 .hero-card {
   padding: 24px;
   background: rgba(255, 255, 255, 0.94);
@@ -397,6 +401,18 @@ p {
   flex-shrink: 0;
 }
 
+.reminder-actions {
+  margin-top: 18px;
+}
+
+.reminder-button {
+  width: 100%;
+}
+
+.reminder-status {
+  margin-top: 10px;
+}
+
 .notification-preview-list {
   list-style: none;
   margin: 14px 0 0;
@@ -471,26 +487,33 @@ p {
   backdrop-filter: blur(10px);
 }
 
-.mobile-nav a {
+.mobile-nav button {
   display: inline-flex;
   min-height: 46px;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
+  border: 0;
+  background: transparent;
   color: var(--muted);
-  text-decoration: none;
   font-size: 0.84rem;
   font-weight: 600;
   transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+  cursor: pointer;
 }
 
-.mobile-nav a:hover {
+.mobile-nav button:hover {
   background: rgba(232, 239, 230, 0.8);
   color: var(--text);
 }
 
-.mobile-nav a:active {
+.mobile-nav button:active {
   transform: scale(0.985);
+}
+
+.mobile-nav button.active {
+  background: rgba(232, 239, 230, 0.95);
+  color: var(--text);
 }
 
 .undo-toast {
@@ -530,8 +553,9 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  border: 0;
   border-radius: 999px;
-  text-decoration: none;
+  cursor: pointer;
   font-weight: 700;
 }
 

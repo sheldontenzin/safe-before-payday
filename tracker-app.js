@@ -424,8 +424,29 @@ function EmptyState() {
   );
 }
 
+function getNotificationSupportState() {
+  if (typeof window === "undefined") {
+    return {
+      available: false,
+      standalone: false,
+      permission: "default",
+    };
+  }
+
+  const available = "Notification" in window && window.isSecureContext;
+  const standalone =
+    window.matchMedia?.("(display-mode: standalone)").matches || window.navigator.standalone === true;
+
+  return {
+    available,
+    standalone,
+    permission: available ? window.Notification.permission : "default",
+  };
+}
+
 function App() {
   const [trackerState, setTrackerState] = useState(loadState);
+  const [activeView, setActiveView] = useState("summary");
   const [incomeForm, setIncomeForm] = useState(() => ({
     label: trackerState.lastIncomeValues.label,
     amount: trackerState.lastIncomeValues.amount,
@@ -445,6 +466,7 @@ function App() {
     note: trackerState.lastSpendingValues.note,
     date: getTodayValue(),
   });
+  const [notificationState, setNotificationState] = useState(getNotificationSupportState);
   const [undoState, setUndoState] = useState(null);
   const balanceRef = useRef(null);
   const incomeRef = useRef(null);
@@ -462,6 +484,10 @@ function App() {
         window.clearTimeout(undoTimeoutRef.current);
       }
     };
+  }, []);
+
+  useEffect(() => {
+    setNotificationState(getNotificationSupportState());
   }, []);
 
   const currentMonthKey = getCurrentMonthKey();
@@ -852,7 +878,20 @@ function App() {
     }));
   }
 
-  function scrollToSection(sectionRef) {
+  function switchView(nextView) {
+    setActiveView(nextView);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function scrollToSection(sectionRef, nextView = "summary") {
+    if (nextView !== activeView) {
+      setActiveView(nextView);
+      window.setTimeout(() => {
+        sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
+      return;
+    }
+
     sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
@@ -1016,21 +1055,70 @@ function App() {
     }));
   }
 
+  async function requestReminderPermission() {
+    const support = getNotificationSupportState();
+    setNotificationState(support);
+
+    if (!support.available) {
+      return;
+    }
+
+    const isiPhone = /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+    if (isiPhone && !support.standalone) {
+      setNotificationState((current) => ({
+        ...current,
+        blockedReason: "Add this app to your Home Screen first to turn on reminders on iPhone.",
+      }));
+      return;
+    }
+
+    const permission = await window.Notification.requestPermission();
+    setNotificationState({
+      ...support,
+      permission,
+      blockedReason: permission === "denied" ? "Notifications are blocked for this app right now." : "",
+    });
+  }
+
+  function getReminderPermissionText() {
+    if (!notificationState.available) {
+      return "This browser does not support reminders here yet.";
+    }
+
+    if (notificationState.blockedReason) {
+      return notificationState.blockedReason;
+    }
+
+    if (notificationState.permission === "granted") {
+      return "Reminders are allowed on this device.";
+    }
+
+    if (notificationState.permission === "denied") {
+      return "Notifications are turned off for this app right now.";
+    }
+
+    return "Turn reminders on when you're ready.";
+  }
+
   const reminderPreview = getReminderPreview();
+  const isSummaryView = activeView === "summary";
+  const isIncomeView = activeView === "income";
+  const isBillsView = activeView === "bills";
+  const isSpendingView = activeView === "spending";
 
   return (
     <main className="money-app">
       <div className="app-stack" id="summary-top">
-        <section className="hero-card">
+        <section className={`hero-card section-panel ${isSummaryView ? "is-active" : "is-hidden"}`}>
           <p className="hero-label">This month</p>
           <h1>{monthlySnapshot.headline}</h1>
           {monthlySnapshot.note ? <p className="hero-note">{monthlySnapshot.note}</p> : null}
         </section>
 
-        {totals.currentBalance === 0 && totals.totalIncome === 0 ? (
+        {isSummaryView && (totals.currentBalance === 0 && totals.totalIncome === 0 ? (
           <EmptyState />
         ) : (
-          <section className="main-card">
+          <section className={`main-card section-panel ${isSummaryView ? "is-active" : "is-hidden"}`}>
             <p className="main-label">Available cash</p>
             <p className="main-value">{formatCurrency(totals.availableMoney)}</p>
             <p className="soft-note">
@@ -1041,7 +1129,7 @@ function App() {
               <button
                 className="summary-pill summary-action"
                 type="button"
-                onClick={() => scrollToSection(balanceRef)}
+                onClick={() => scrollToSection(balanceRef, "summary")}
               >
                 <span>Current balance</span>
                 <strong>{formatCurrency(totals.currentBalance)}</strong>
@@ -1049,7 +1137,7 @@ function App() {
               <button
                 className="summary-pill summary-action"
                 type="button"
-                onClick={() => scrollToSection(incomeRef)}
+                onClick={() => switchView("income")}
               >
                 <span>Upcoming income</span>
                 <strong>{formatCurrency(totals.totalIncome)}</strong>
@@ -1057,7 +1145,7 @@ function App() {
               <button
                 className="summary-pill summary-action"
                 type="button"
-                onClick={() => scrollToSection(spendingRef)}
+                onClick={() => switchView("spending")}
               >
                 <span>Upcoming spending</span>
                 <strong>{formatCurrency(totals.totalSpent)}</strong>
@@ -1068,7 +1156,7 @@ function App() {
               <button
                 className="sub-card summary-action"
                 type="button"
-                onClick={() => scrollToSection(billsRef)}
+                onClick={() => switchView("bills")}
               >
                 <p>Upcoming bills</p>
                 <strong>{formatCurrency(totals.totalBills)}</strong>
@@ -1076,16 +1164,16 @@ function App() {
               <button
                 className="sub-card summary-action"
                 type="button"
-                onClick={() => scrollToSection(spendingRef)}
+                onClick={() => switchView("spending")}
               >
                 <p>Other upcoming spending</p>
                 <strong>{formatCurrency(totals.totalExtra)}</strong>
               </button>
             </div>
           </section>
-        )}
+        ))}
 
-        <section className="card">
+        <section className={`card section-panel ${isSummaryView ? "is-active" : "is-hidden"}`}>
           <div className="section-head">
             <div>
               <p className="section-label">Heads up</p>
@@ -1107,16 +1195,16 @@ function App() {
           )}
         </section>
 
-        <div className="inline-actions">
-          <a className="inline-button primary" href="#income-form">
+        <div className={`inline-actions section-panel ${isSummaryView ? "is-active" : "is-hidden"}`}>
+          <button className="inline-button primary" type="button" onClick={() => switchView("income")}>
             Add income
-          </a>
-          <a className="inline-button secondary" href="#spending-form">
+          </button>
+          <button className="inline-button secondary" type="button" onClick={() => switchView("spending")}>
             Add spending
-          </a>
+          </button>
         </div>
 
-        <section className="card" id="more-section" ref={balanceRef}>
+        <section className={`card section-panel ${isSummaryView ? "is-active" : "is-hidden"}`} id="more-section" ref={balanceRef}>
           <div className="section-head">
             <div>
               <p className="section-label">Right now</p>
@@ -1150,7 +1238,7 @@ function App() {
           </label>
         </section>
 
-        <section className="card">
+        <section className={`card section-panel ${isSummaryView ? "is-active" : "is-hidden"}`}>
           <div className="section-head">
             <div>
               <p className="section-label">Reminders</p>
@@ -1174,6 +1262,13 @@ function App() {
                 {option.label}
               </button>
             ))}
+          </div>
+
+          <div className="reminder-actions">
+            <button className="primary-button reminder-button" type="button" onClick={requestReminderPermission}>
+              Turn on reminders
+            </button>
+            <p className="list-help reminder-status">{getReminderPermissionText()}</p>
           </div>
 
           <label className="toggle-row">
@@ -1201,7 +1296,7 @@ function App() {
           </div>
         </section>
 
-        <section className="card" id="income-form" ref={incomeRef}>
+        <section className={`card section-panel ${isIncomeView ? "is-active" : "is-hidden"}`} id="income-form" ref={incomeRef}>
           <div className="section-head">
             <div>
               <p className="section-label">Income</p>
@@ -1324,7 +1419,7 @@ function App() {
           </div>
         </section>
 
-        <section className="card" id="bills-form" ref={billsRef}>
+        <section className={`card section-panel ${isBillsView ? "is-active" : "is-hidden"}`} id="bills-form" ref={billsRef}>
           <div className="section-head">
             <div>
               <p className="section-label">Bills</p>
@@ -1439,7 +1534,7 @@ function App() {
           )}
         </section>
 
-        <section className="card" id="spending-form" ref={spendingRef}>
+        <section className={`card section-panel ${isSpendingView ? "is-active" : "is-hidden"}`} id="spending-form" ref={spendingRef}>
           <div className="section-head">
             <div>
               <p className="section-label">Money out</p>
@@ -1540,10 +1635,18 @@ function App() {
 
       </div>
       <nav className="mobile-nav" aria-label="Quick navigation">
-        <a href="#summary-top">Summary</a>
-        <a href="#income-form">Income</a>
-        <a href="#bills-form">Bills</a>
-        <a href="#spending-form">Spending</a>
+        <button type="button" className={isSummaryView ? "active" : ""} onClick={() => switchView("summary")}>
+          Summary
+        </button>
+        <button type="button" className={isIncomeView ? "active" : ""} onClick={() => switchView("income")}>
+          Income
+        </button>
+        <button type="button" className={isBillsView ? "active" : ""} onClick={() => switchView("bills")}>
+          Bills
+        </button>
+        <button type="button" className={isSpendingView ? "active" : ""} onClick={() => switchView("spending")}>
+          Spending
+        </button>
       </nav>
       {undoState ? (
         <div className="undo-toast" role="status" aria-live="polite">
