@@ -175,6 +175,8 @@ function App() {
     };
   }, [incomeThisMonth, trackerState.currentBalance, trackerState.extraExpenses, trackerState.fixedExpenses, trackerState.incomeEntries]);
 
+  const monthlyRemaining = clampMoney(totals.incomeThisMonthTotal - totals.totalExtra - totals.totalBills);
+
   const upcomingBills = useMemo(() => {
     return [...trackerState.fixedExpenses]
       .map((bill) => {
@@ -191,67 +193,6 @@ function App() {
       })
       .sort((a, b) => a.dueDate - b.dueDate);
   }, [trackerState.fixedExpenses]);
-
-  const forecast = useMemo(() => {
-    const todayValue = getTodayValue();
-    const startingBalance = clampMoney(Number(trackerState.currentBalance) || 0);
-    const futureEvents = [
-      ...trackerState.incomeEntries.map((entry) => ({
-        date: entry.date,
-        amount: Number(entry.amount) || 0,
-        kind: "income",
-        sortOrder: 2,
-      })),
-      ...trackerState.fixedExpenses.map((bill) => ({
-        date: bill.dueDate,
-        amount: Number(bill.amount) || 0,
-        kind: "bill",
-        sortOrder: 0,
-      })),
-      ...trackerState.extraExpenses.map((entry) => ({
-        date: entry.date,
-        amount: Number(entry.amount) || 0,
-        kind: "spending",
-        sortOrder: 1,
-      })),
-    ]
-      .filter((event) => event.date && event.date >= todayValue)
-      .sort((a, b) => {
-        if (a.date !== b.date) {
-          return a.date > b.date ? 1 : -1;
-        }
-
-        return a.sortOrder - b.sortOrder;
-      });
-
-    let runningBalance = startingBalance;
-    let firstNegativeDate = null;
-    let firstTightDate = null;
-    const tightThreshold = Math.max(100, startingBalance * 0.2);
-
-    futureEvents.forEach((event) => {
-      if (event.kind === "income") {
-        runningBalance = clampMoney(runningBalance + event.amount);
-      } else {
-        runningBalance = clampMoney(runningBalance - event.amount);
-      }
-
-      if (!firstNegativeDate && runningBalance < 0) {
-        firstNegativeDate = event.date;
-      }
-
-      if (!firstTightDate && runningBalance >= 0 && runningBalance <= tightThreshold) {
-        firstTightDate = event.date;
-      }
-    });
-
-    return {
-      projectedBalance: runningBalance,
-      firstNegativeDate,
-      firstTightDate,
-      hasFutureEvents: futureEvents.length > 0,
-    };
-  }, [trackerState.currentBalance, trackerState.extraExpenses, trackerState.fixedExpenses, trackerState.incomeEntries]);
 
   const allIncomeEntries = [...trackerState.incomeEntries].sort((a, b) => (a.date < b.date ? 1 : -1));
   const recentSpending = [...trackerState.extraExpenses].sort((a, b) => (a.date < b.date ? 1 : -1));
@@ -368,29 +309,49 @@ function App() {
     return "Money available right now.";
   }
 
-  function getForecastMessage() {
-    if (forecast.firstNegativeDate) {
-      return `You may run out around ${formatDateLabel(forecast.firstNegativeDate)}.`;
+  function getHeaderMessage() {
+    if (totals.incomeThisMonthTotal === 0 && totals.totalExtra === 0 && totals.totalBills === 0) {
+      return "You're on track this month";
     }
 
-    if (forecast.firstTightDate) {
-      return `Things might be tight in a few days, around ${formatDateLabel(
-        forecast.firstTightDate
-      )}.`;
+    if (monthlyRemaining < 0) {
+      return `You're ${formatCurrency(Math.abs(monthlyRemaining))} over budget`;
     }
 
-    if (!forecast.hasFutureEvents) {
-      return "Add a bill, income, or spending date to see what is coming up.";
-    }
-
-    return "You're on track this month.";
+    return `You have ${formatCurrency(monthlyRemaining)} available`;
   }
+
+  function getForecastMessage() {
+    if (totals.incomeThisMonthTotal === 0 && totals.totalExtra === 0 && totals.totalBills === 0) {
+      return {
+        headline: "You're on track this month",
+        instruction: "Keep spending under $0",
+      };
+    }
+
+    if (monthlyRemaining < 0) {
+      const amountOver = Math.abs(monthlyRemaining);
+
+      return {
+        headline: `You're ${formatCurrency(amountOver)} over budget`,
+        instruction: `Add income or reduce spending by ${formatCurrency(amountOver)}`,
+      };
+    }
+
+    return {
+      headline: `You have ${formatCurrency(monthlyRemaining)} left this month`,
+      instruction: `Keep spending under ${formatCurrency(monthlyRemaining)}`,
+    };
+  }
+
+  const forecastMessage = getForecastMessage();
 
   return (
     <main className="money-app">
       <div className="app-stack">
         <section className="hero-card">
-          <h1>Overview</h1>
+          <p className="hero-label">This month</p>
+          <h1>{getHeaderMessage()}</h1>
         </section>
 
         {totals.currentBalance === 0 && totals.totalIncome === 0 ? (
@@ -453,23 +414,23 @@ function App() {
           <div className="section-head">
             <div>
               <p className="section-label">Looking ahead</p>
-              <h2>This month</h2>
             </div>
           </div>
 
-          <div className="insight-card">
-            <p className="insight-copy">{getForecastMessage()}</p>
+          <div className={`insight-card${monthlyRemaining < 0 ? " insight-card-warning" : ""}`}>
+            <p className="insight-copy">{forecastMessage.headline}</p>
+            <p className="insight-note">{forecastMessage.instruction}</p>
+          </div>
+
+          <div className="inline-actions">
+            <a className="inline-button primary" href="#income-form">
+              Add income
+            </a>
+            <a className="inline-button secondary" href="#spending-form">
+              Review spending
+            </a>
           </div>
         </section>
-
-        <div className="inline-actions">
-          <a className="inline-button primary" href="#income-form">
-            Add income
-          </a>
-          <a className="inline-button secondary" href="#spending-form">
-            Add spending
-          </a>
-        </div>
 
         <section className="card" ref={balanceRef}>
           <div className="section-head">
