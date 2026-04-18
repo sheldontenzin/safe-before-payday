@@ -57,6 +57,7 @@ function clampMoney(value) {
 
 function loadState() {
   const fallback = {
+    currentBalance: "",
     estimatedMonthlyIncome: "",
     incomeEntries: [],
     fixedExpenses: [],
@@ -71,6 +72,7 @@ function loadState() {
 
     const parsed = JSON.parse(raw);
     return {
+      currentBalance: parsed?.currentBalance ?? "",
       estimatedMonthlyIncome: parsed?.estimatedMonthlyIncome ?? "",
       incomeEntries: Array.isArray(parsed?.incomeEntries) ? parsed.incomeEntries : [],
       fixedExpenses: Array.isArray(parsed?.fixedExpenses) ? parsed.fixedExpenses : [],
@@ -143,28 +145,36 @@ function App() {
   }, []);
 
   const currentMonthKey = getCurrentMonthKey();
-  const incomeThisMonth = trackerState.incomeEntries.filter((entry) =>
-    isInCurrentMonth(entry.date, currentMonthKey)
-  );
-  const spendingThisMonth = trackerState.extraExpenses.filter((entry) =>
-    isInCurrentMonth(entry.date, currentMonthKey)
-  );
+  const incomeThisMonth = trackerState.incomeEntries.filter((entry) => isInCurrentMonth(entry.date, currentMonthKey));
+  const spendingThisMonth = trackerState.extraExpenses.filter((entry) => isInCurrentMonth(entry.date, currentMonthKey));
 
   const totals = useMemo(() => {
+    const currentBalance = clampMoney(Number(trackerState.currentBalance) || 0);
     const totalIncome = clampMoney(
+      trackerState.incomeEntries.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0)
+    );
+    const incomeThisMonthTotal = clampMoney(
       incomeThisMonth.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0)
     );
     const totalBills = clampMoney(
       trackerState.fixedExpenses.reduce((sum, bill) => sum + (Number(bill.amount) || 0), 0)
     );
     const totalExtra = clampMoney(
-      spendingThisMonth.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0)
+      trackerState.extraExpenses.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0)
     );
     const totalSpent = clampMoney(totalBills + totalExtra);
-    const remaining = clampMoney(totalIncome - totalSpent);
+    const availableMoney = clampMoney(currentBalance + totalIncome - totalSpent);
 
-    return { totalIncome, totalBills, totalExtra, totalSpent, remaining };
-  }, [incomeThisMonth, spendingThisMonth, trackerState.fixedExpenses]);
+    return {
+      currentBalance,
+      totalIncome,
+      incomeThisMonthTotal,
+      totalBills,
+      totalExtra,
+      totalSpent,
+      availableMoney,
+    };
+  }, [incomeThisMonth, trackerState.currentBalance, trackerState.extraExpenses, trackerState.fixedExpenses, trackerState.incomeEntries]);
 
   const upcomingBills = useMemo(() => {
     const today = new Date();
@@ -192,14 +202,20 @@ function App() {
       .sort((a, b) => a.dueDate - b.dueDate);
   }, [trackerState.fixedExpenses]);
 
-  const recentIncome = [...incomeThisMonth].sort((a, b) => (a.date < b.date ? 1 : -1));
   const allIncomeEntries = [...trackerState.incomeEntries].sort((a, b) => (a.date < b.date ? 1 : -1));
-  const recentSpending = [...spendingThisMonth].sort((a, b) => (a.date < b.date ? 1 : -1));
+  const recentSpending = [...trackerState.extraExpenses].sort((a, b) => (a.date < b.date ? 1 : -1));
 
   function updateEstimatedIncome(value) {
     setTrackerState((current) => ({
       ...current,
       estimatedMonthlyIncome: value,
+    }));
+  }
+
+  function updateCurrentBalance(value) {
+    setTrackerState((current) => ({
+      ...current,
+      currentBalance: value,
     }));
   }
 
@@ -283,19 +299,19 @@ function App() {
   }
 
   function getSupportMessage() {
-    if (totals.totalIncome === 0) {
+    if (totals.currentBalance === 0 && totals.totalIncome === 0) {
       return "Let's add your first income 🌼";
     }
 
-    if (totals.remaining < 0) {
-      return "You're a little over this month. That happens. We can adjust next time.";
+    if (totals.availableMoney < 0) {
+      return "You're a little over right now. That happens.";
     }
 
-    if (totals.remaining <= Math.max(150, totals.totalIncome * 0.2)) {
-      return "Things are a little tight right now. Try to keep spending small for a few days.";
+    if (totals.availableMoney <= Math.max(150, (totals.currentBalance + totals.totalIncome) * 0.2)) {
+      return "Things are a little tight. Take it slow for a few days.";
     }
 
-    return "You still have some room this month. Small steps are enough.";
+    return "You have money available right now. Small steps are enough.";
   }
 
   return (
@@ -313,15 +329,19 @@ function App() {
           <p className="hero-copy">Money in. Money out. A simple look at what is left.</p>
         </section>
 
-        {totals.totalIncome === 0 ? (
+        {totals.currentBalance === 0 && totals.totalIncome === 0 ? (
           <EmptyState />
         ) : (
           <section className="main-card">
-            <p className="main-label">Money left this month</p>
-            <p className="main-value">{formatCurrency(totals.remaining)}</p>
+            <p className="main-label">Money available</p>
+            <p className="main-value">{formatCurrency(totals.availableMoney)}</p>
             <p className="soft-note">{getSupportMessage()}</p>
 
             <div className="main-summary">
+              <div className="summary-pill">
+                <span>Current balance</span>
+                <strong>{formatCurrency(totals.currentBalance)}</strong>
+              </div>
               <div className="summary-pill">
                 <span>Income</span>
                 <strong>{formatCurrency(totals.totalIncome)}</strong>
@@ -348,8 +368,8 @@ function App() {
         <section className="card">
           <div className="section-head">
             <div>
-              <p className="section-label">This month</p>
-              <h2>Money left</h2>
+              <p className="section-label">Right now</p>
+              <h2>Current balance</h2>
             </div>
             <label className="mini-field">
               <span>Monthly income (estimate)</span>
@@ -364,6 +384,19 @@ function App() {
               />
             </label>
           </div>
+
+          <label className="balance-field">
+            <span>Current balance</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              min="-999999"
+              step="0.01"
+              placeholder="0.00"
+              value={trackerState.currentBalance}
+              onChange={(event) => updateCurrentBalance(event.target.value)}
+            />
+          </label>
         </section>
 
         <section className="card" id="income-form">
@@ -372,7 +405,7 @@ function App() {
               <p className="section-label">Money in</p>
               <h2>Add money</h2>
             </div>
-            <div className="section-total">{formatCurrency(totals.totalIncome)}</div>
+            <div className="section-total">{formatCurrency(totals.incomeThisMonthTotal)}</div>
           </div>
 
           <form className="entry-form" onSubmit={addIncome}>
@@ -410,7 +443,7 @@ function App() {
           <div className="list-block">
             <p className="list-title">All money added</p>
             <p className="list-help">
-              This month's total is at the top. Every income entry stays in this list.
+              Money available uses all income entries in this list.
             </p>
             {allIncomeEntries.length === 0 ? (
               <p className="list-empty">Let's add your first income 🌼</p>

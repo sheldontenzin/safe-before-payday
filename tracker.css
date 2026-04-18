@@ -181,6 +181,30 @@ p {
   padding: 22px 20px;
 }
 
+.balance-field {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.balance-field span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.balance-field input {
+  width: 100%;
+  min-height: 60px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-strong);
+  color: var(--text);
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
 .mini-field {
   display: grid;
   gap: 8px;
