@@ -1,6 +1,7 @@
 const { useEffect, useMemo, useRef, useState } = React;
 
 const STORAGE_KEY = "monthly-money-tracker-v1";
+const COVER_IMAGE = "/public/cover.png";
 const ENCOURAGING_MESSAGES = [
   "You're doing okay 🌿",
   "Let's take a look together",
@@ -121,27 +122,6 @@ function saveState(state) {
   } catch (error) {
     // Keep the app usable even if storage is unavailable.
   }
-}
-
-function WalletIcon() {
-  return (
-    <svg
-      className="wallet-icon"
-      viewBox="0 0 96 96"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <path
-        d="M48 79C31 70.6 20 60.4 20 46.3C20 36.9 27.1 30 36.2 30C41.8 30 46.1 32.4 48 36.2C49.9 32.4 54.2 30 59.8 30C68.9 30 76 36.9 76 46.3C76 60.4 65 70.6 48 79Z"
-        fill="#A8C9A5"
-      />
-      <rect x="19" y="38" width="58" height="35" rx="14" fill="#7FAF8F" />
-      <rect x="27" y="46" width="42" height="19" rx="9.5" fill="#E8EFE6" />
-      <circle cx="68" cy="31" r="8" fill="#F2C6A0" />
-      <circle cx="58" cy="23" r="6" fill="#E7A977" />
-    </svg>
-  );
 }
 
 function EmptyState() {
@@ -426,15 +406,25 @@ function App() {
     <main className="money-app">
       <div className="app-stack">
         <section className="hero-card">
-          <div className="hero-row">
-            <div>
-              <p className="hero-label">Monthly money tracker</p>
-              <h1>{ENCOURAGING_MESSAGES[messageIndex]}</h1>
+          <img
+            className="hero-image"
+            src={COVER_IMAGE}
+            alt=""
+            aria-hidden="true"
+          />
+          <div className="hero-overlay" aria-hidden="true"></div>
+          <div className="hero-content">
+            <div className="hero-row">
+              <div>
+                <p className="hero-label">Monthly money tracker</p>
+                <h1>{ENCOURAGING_MESSAGES[messageIndex]}</h1>
+              </div>
+              <div className="hero-logo-shell" aria-hidden="true">
+                <img className="hero-logo" src={COVER_IMAGE} alt="" />
+              </div>
             </div>
-            <WalletIcon />
+            <p className="hero-copy">Money in. Money out. A simple look at what is left.</p>
           </div>
-
-          <p className="hero-copy">Money in. Money out. A simple look at what is left.</p>
         </section>
 
         {totals.currentBalance === 0 && totals.totalIncome === 0 ? (
