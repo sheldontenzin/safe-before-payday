@@ -1,7 +1,7 @@
 const { useEffect, useMemo, useRef, useState } = React;
 
 const STORAGE_KEY = "monthly-money-tracker-v1";
-const COVER_IMAGE = "/public/cover.png";
+const COVER_IMAGE = "/app/cover.png";
 const ENCOURAGING_MESSAGES = [
   "You're doing okay 🌿",
   "Let's take a look together",
