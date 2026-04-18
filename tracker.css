@@ -270,13 +270,6 @@ p {
   margin-top: 14px;
 }
 
-.privacy-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 16px;
-}
-
 .preset-chip {
   min-height: 38px;
   padding: 0 14px;
@@ -284,26 +277,6 @@ p {
   border-radius: 999px;
   background: rgba(232, 239, 230, 0.78);
   color: var(--text);
-}
-
-.privacy-chip {
-  min-height: 42px;
-  padding: 0 16px;
-  border: 1px solid rgba(47, 62, 52, 0.08);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.88);
-  color: var(--text);
-  cursor: pointer;
-  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
-}
-
-.privacy-chip.active {
-  background: rgba(232, 239, 230, 0.92);
-  border-color: rgba(127, 175, 143, 0.34);
-}
-
-.privacy-chip:active {
-  transform: scale(0.985);
 }
 
 .entry-form {
@@ -366,63 +339,6 @@ p {
   color: var(--muted);
   font-size: 0.88rem;
   line-height: 1.5;
-}
-
-.toggle-row {
-  margin-top: 18px;
-  padding: 16px 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, 0.68);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.toggle-title {
-  font-weight: 700;
-}
-
-.toggle-note {
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-.toggle-row input[type="checkbox"] {
-  width: 22px;
-  height: 22px;
-  accent-color: var(--primary);
-  flex-shrink: 0;
-}
-
-.reminder-actions {
-  margin-top: 18px;
-}
-
-.reminder-button {
-  width: 100%;
-}
-
-.reminder-status {
-  margin-top: 10px;
-}
-
-.notification-preview-list {
-  list-style: none;
-  margin: 14px 0 0;
-  padding: 0;
-  display: grid;
-  gap: 10px;
-}
-
-.notification-preview-item {
-  padding: 14px 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.76);
-  color: var(--text);
 }
 
 .list-empty {
