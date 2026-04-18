@@ -9,16 +9,6 @@ const REPEAT_OPTIONS = [
   { value: "friday", label: "Every Friday" },
   { value: "first", label: "Every 1st" },
 ];
-const INCOME_PRESETS = [
-  { label: "Paycheck", repeat: "biweekly", repeats: "2" },
-  { label: "Freelance", repeat: "once", repeats: "1" },
-];
-const BILL_PRESETS = [
-  { label: "Rent", repeat: "monthly", repeats: "3" },
-  { label: "Utilities", repeat: "monthly", repeats: "3" },
-  { label: "Phone bill", repeat: "monthly", repeats: "3" },
-];
-const SPENDING_PRESETS = ["Groceries", "Gas", "Utilities"];
 
 function createId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -66,6 +56,13 @@ function isInCurrentMonth(dateValue, monthKey = getCurrentMonthKey()) {
 
 function clampMoney(value) {
   return Math.round(value * 100) / 100;
+}
+
+function normalizeLabel(value) {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
 }
 
 function dateFromValue(dateValue) {
@@ -162,6 +159,137 @@ function getNextOccurrenceAfter(dateValue, pattern) {
   }
 
   return getTodayValue();
+}
+
+function getDateDifferenceInDays(startValue, endValue) {
+  const difference = dateFromValue(endValue).getTime() - dateFromValue(startValue).getTime();
+  return Math.round(difference / (24 * 60 * 60 * 1000));
+}
+
+function inferRepeatPattern(dateValues) {
+  const uniqueDates = [...new Set(dateValues)].sort();
+
+  if (uniqueDates.length < 2) {
+    return "once";
+  }
+
+  const latest = uniqueDates[uniqueDates.length - 1];
+  const previous = uniqueDates[uniqueDates.length - 2];
+  const difference = getDateDifferenceInDays(previous, latest);
+  const latestDate = dateFromValue(latest);
+  const previousDate = dateFromValue(previous);
+
+  if (difference === 14) {
+    return "biweekly";
+  }
+
+  if (difference === 7) {
+    return latestDate.getDay() === 5 ? "friday" : "weekly";
+  }
+
+  if (latestDate.getDate() === 1 && previousDate.getDate() === 1) {
+    return "first";
+  }
+
+  if (
+    latestDate.getDate() === previousDate.getDate() &&
+    (latestDate.getMonth() !== previousDate.getMonth() || latestDate.getFullYear() !== previousDate.getFullYear())
+  ) {
+    return "monthly";
+  }
+
+  return "once";
+}
+
+function getNextFutureDate(dateValue, pattern, todayValue) {
+  if (!dateValue || pattern === "once") {
+    return todayValue;
+  }
+
+  let nextDate = getNextOccurrenceAfter(dateValue, pattern);
+
+  while (nextDate <= todayValue && pattern !== "once") {
+    nextDate = getNextOccurrenceAfter(nextDate, pattern);
+  }
+
+  return nextDate;
+}
+
+function buildLabelProfiles(entries, labelKey, dateKey) {
+  const profileMap = new Map();
+
+  entries.forEach((entry) => {
+    const label = String(entry?.[labelKey] || "").trim();
+    const dateValue = String(entry?.[dateKey] || "").trim();
+
+    if (!label || !dateValue) {
+      return;
+    }
+
+    const normalized = normalizeLabel(label);
+    const amount = Number(entry?.amount) || 0;
+    const existing = profileMap.get(normalized) ?? {
+      key: normalized,
+      label,
+      lastDate: dateValue,
+      count: 0,
+      dates: [],
+      recentAmount: amount,
+      amountCounts: new Map(),
+    };
+
+    existing.count += 1;
+    existing.dates.push(dateValue);
+
+    if (dateValue >= existing.lastDate) {
+      existing.label = label;
+      existing.lastDate = dateValue;
+      existing.recentAmount = amount;
+    }
+
+    const amountKey = String(clampMoney(amount));
+    const currentAmountCount = existing.amountCounts.get(amountKey) ?? {
+      amount,
+      count: 0,
+      lastDate: dateValue,
+    };
+
+    currentAmountCount.count += 1;
+    if (dateValue >= currentAmountCount.lastDate) {
+      currentAmountCount.lastDate = dateValue;
+      currentAmountCount.amount = amount;
+    }
+
+    existing.amountCounts.set(amountKey, currentAmountCount);
+    profileMap.set(normalized, existing);
+  });
+
+  return [...profileMap.values()]
+    .map((profile) => {
+      const mostLikelyAmount = [...profile.amountCounts.values()].sort((left, right) => {
+        if (right.count !== left.count) {
+          return right.count - left.count;
+        }
+
+        return right.lastDate.localeCompare(left.lastDate);
+      })[0];
+
+      return {
+        key: profile.key,
+        label: profile.label,
+        count: profile.count,
+        lastDate: profile.lastDate,
+        amount: mostLikelyAmount?.amount ?? profile.recentAmount,
+        repeat: inferRepeatPattern(profile.dates),
+      };
+    })
+    .sort((left, right) => {
+      if (right.count !== left.count) {
+        return right.count - left.count;
+      }
+
+      return right.lastDate.localeCompare(left.lastDate);
+    });
 }
 
 function normalizeIncomeEntry(entry) {
@@ -326,6 +454,19 @@ function App() {
   const currentMonthKey = getCurrentMonthKey();
   const todayValue = getTodayValue();
   const incomeThisMonth = trackerState.incomeEntries.filter((entry) => isInCurrentMonth(entry.date, currentMonthKey));
+  const incomeProfiles = useMemo(
+    () => buildLabelProfiles(trackerState.incomeEntries, "label", "date"),
+    [trackerState.incomeEntries]
+  );
+  const billProfiles = useMemo(
+    () => buildLabelProfiles(trackerState.fixedExpenses, "name", "dueDate"),
+    [trackerState.fixedExpenses]
+  );
+  const spendingProfiles = useMemo(
+    () => buildLabelProfiles(trackerState.extraExpenses, "note", "date"),
+    [trackerState.extraExpenses]
+  );
+  const spendingQuickPicks = useMemo(() => spendingProfiles.slice(0, 4), [spendingProfiles]);
 
   const totals = useMemo(() => {
     const currentBalance = clampMoney(Number(trackerState.currentBalance) || 0);
@@ -452,6 +593,51 @@ function App() {
 
   const allIncomeEntries = [...trackerState.incomeEntries].sort((a, b) => (a.date < b.date ? 1 : -1));
   const recentSpending = [...trackerState.extraExpenses].sort((a, b) => (a.date < b.date ? 1 : -1));
+
+  function findProfileByLabel(profiles, value) {
+    const normalized = normalizeLabel(value);
+    return profiles.find((profile) => profile.key === normalized) ?? null;
+  }
+
+  function applyIncomeProfile(profile, nextLabel = profile.label) {
+    if (!profile) {
+      return;
+    }
+
+    setIncomeForm((current) => ({
+      ...current,
+      label: nextLabel,
+      amount: String(profile.amount || ""),
+      repeat: profile.repeat,
+      date: getNextFutureDate(profile.lastDate, profile.repeat, todayValue),
+    }));
+  }
+
+  function applyBillProfile(profile, nextLabel = profile.label) {
+    if (!profile) {
+      return;
+    }
+
+    setBillForm((current) => ({
+      ...current,
+      name: nextLabel,
+      amount: String(profile.amount || ""),
+      repeat: profile.repeat,
+      dueDate: getNextFutureDate(profile.lastDate, profile.repeat, todayValue),
+    }));
+  }
+
+  function applySpendingProfile(profile, nextLabel = profile.label) {
+    if (!profile) {
+      return;
+    }
+
+    setSpendingForm((current) => ({
+      ...current,
+      note: nextLabel,
+      amount: String(profile.amount || ""),
+    }));
+  }
 
   function showUndoToast(payload) {
     if (undoTimeoutRef.current) {
@@ -611,28 +797,45 @@ function App() {
     setUndoState(null);
   }
 
-  function applyIncomePreset(preset) {
+  function handleIncomeLabelChange(value) {
+    const profile = findProfileByLabel(incomeProfiles, value);
+
+    if (profile) {
+      applyIncomeProfile(profile, value);
+      return;
+    }
+
     setIncomeForm((current) => ({
       ...current,
-      label: preset.label,
-      repeat: preset.repeat,
-      repeats: preset.repeats,
+      label: value,
     }));
   }
 
-  function applyBillPreset(preset) {
+  function handleBillNameChange(value) {
+    const profile = findProfileByLabel(billProfiles, value);
+
+    if (profile) {
+      applyBillProfile(profile, value);
+      return;
+    }
+
     setBillForm((current) => ({
       ...current,
-      name: preset.label,
-      repeat: preset.repeat,
-      repeats: preset.repeats,
+      name: value,
     }));
   }
 
-  function applySpendingPreset(note) {
+  function handleSpendingNoteChange(value) {
+    const profile = findProfileByLabel(spendingProfiles, value);
+
+    if (profile) {
+      applySpendingProfile(profile, value);
+      return;
+    }
+
     setSpendingForm((current) => ({
       ...current,
-      note,
+      note: value,
     }));
   }
 
@@ -859,18 +1062,7 @@ function App() {
           </div>
 
           <p className="section-helper">Add upcoming income you still expect to receive.</p>
-          <div className="preset-row">
-            {INCOME_PRESETS.map((preset) => (
-              <button
-                key={preset.label}
-                className="preset-chip"
-                type="button"
-                onClick={() => applyIncomePreset(preset)}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
+          <p className="list-help">We remember your usual income labels, amounts, and repeat pattern.</p>
 
           <form className="entry-form" onSubmit={addIncome}>
             <label className="field">
@@ -878,10 +1070,9 @@ function App() {
               <input
                 type="text"
                 placeholder="Paycheck"
+                list="income-label-suggestions"
                 value={incomeForm.label}
-                onChange={(event) =>
-                  setIncomeForm((current) => ({ ...current, label: event.target.value }))
-                }
+                onChange={(event) => handleIncomeLabelChange(event.target.value)}
               />
             </label>
 
@@ -945,6 +1136,11 @@ function App() {
               Add income
             </button>
           </form>
+          <datalist id="income-label-suggestions">
+            {incomeProfiles.map((profile) => (
+              <option key={profile.key} value={profile.label} />
+            ))}
+          </datalist>
 
           <div className="list-block">
             <p className="list-title">All income entered</p>
@@ -987,19 +1183,7 @@ function App() {
             </div>
             <div className="section-total">{formatCurrency(totals.totalBills)}</div>
           </div>
-
-          <div className="preset-row">
-            {BILL_PRESETS.map((preset) => (
-              <button
-                key={preset.label}
-                className="preset-chip"
-                type="button"
-                onClick={() => applyBillPreset(preset)}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
+          <p className="list-help">We remember your usual bill names, amounts, and repeat pattern.</p>
 
           <form className="entry-form bill-form" onSubmit={addBill}>
             <label className="field">
@@ -1007,10 +1191,9 @@ function App() {
               <input
                 type="text"
                 placeholder="Rent"
+                list="bill-name-suggestions"
                 value={billForm.name}
-                onChange={(event) =>
-                  setBillForm((current) => ({ ...current, name: event.target.value }))
-                }
+                onChange={(event) => handleBillNameChange(event.target.value)}
               />
             </label>
 
@@ -1074,6 +1257,11 @@ function App() {
               Add bill
             </button>
           </form>
+          <datalist id="bill-name-suggestions">
+            {billProfiles.map((profile) => (
+              <option key={profile.key} value={profile.label} />
+            ))}
+          </datalist>
 
           <p className="list-help">Each bill saves right away and is counted on its own due date.</p>
 
@@ -1111,18 +1299,21 @@ function App() {
             <div className="section-total">{formatCurrency(totals.totalExtra)}</div>
           </div>
 
-          <div className="preset-row">
-            {SPENDING_PRESETS.map((preset) => (
-              <button
-                key={preset}
-                className="preset-chip"
-                type="button"
-                onClick={() => applySpendingPreset(preset)}
-              >
-                {preset}
-              </button>
-            ))}
-          </div>
+          {spendingQuickPicks.length > 0 ? (
+            <div className="preset-row">
+              {spendingQuickPicks.map((profile) => (
+                <button
+                  key={profile.key}
+                  className="preset-chip"
+                  type="button"
+                  onClick={() => applySpendingProfile(profile)}
+                >
+                  {profile.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+          <p className="list-help">Quick fills come from your own most-used spending labels.</p>
 
           <form className="entry-form" onSubmit={addSpending}>
             <label className="field">
@@ -1145,10 +1336,9 @@ function App() {
               <input
                 type="text"
                 placeholder="Groceries"
+                list="spending-note-suggestions"
                 value={spendingForm.note}
-                onChange={(event) =>
-                  setSpendingForm((current) => ({ ...current, note: event.target.value }))
-                }
+                onChange={(event) => handleSpendingNoteChange(event.target.value)}
               />
             </label>
 
@@ -1167,6 +1357,11 @@ function App() {
               Add spending
             </button>
           </form>
+          <datalist id="spending-note-suggestions">
+            {spendingProfiles.map((profile) => (
+              <option key={profile.key} value={profile.label} />
+            ))}
+          </datalist>
 
           {recentSpending.length === 0 ? (
             <p className="list-empty">No spending added yet.</p>
