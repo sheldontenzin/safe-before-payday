@@ -74,7 +74,7 @@ p {
 }
 
 .hero-card {
-  padding: 16px 24px 14px;
+  padding: 24px;
   background: rgba(255, 255, 255, 0.94);
 }
 
@@ -93,18 +93,24 @@ p {
   line-height: 1.4;
 }
 
+.hero-card h1 {
+  font-size: 1.35rem;
+  line-height: 1.2;
+  letter-spacing: -0.04em;
+  color: #243129;
+}
+
 .hero-label {
   color: var(--muted);
   font-size: 0.85rem;
   line-height: 1.4;
 }
 
-.hero-card h1 {
-  margin-top: 4px;
-  font-size: clamp(1.55rem, 5vw, 2.1rem);
-  line-height: 1.08;
-  letter-spacing: -0.04em;
-  color: #243129;
+.hero-note {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.96rem;
+  line-height: 1.55;
 }
 
 .empty-state {
@@ -189,10 +195,6 @@ p {
 
 .card {
   padding: 28px 24px;
-}
-
-.card .section-head + .insight-card {
-  margin-top: 6px;
 }
 
 .balance-field {
@@ -342,29 +344,32 @@ p {
   margin-top: 10px;
 }
 
-.insight-card-warning {
-  background: rgba(242, 198, 160, 0.22);
-  border-color: rgba(231, 169, 119, 0.34);
-}
-
 .insight-copy {
   font-size: 1.02rem;
   font-weight: 700;
-  line-height: 1.45;
+  line-height: 1.55;
 }
 
-.insight-note {
-  margin-top: 6px;
-  color: var(--muted);
-  font-size: 0.96rem;
-  line-height: 1.5;
+.heads-up-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.heads-up-item {
+  color: var(--text);
+  font-size: 0.98rem;
+  line-height: 1.55;
 }
 
 .inline-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
-  margin-top: 16px;
+  margin-top: 4px;
+  margin-bottom: 8px;
 }
 
 .inline-button {

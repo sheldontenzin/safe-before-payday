@@ -354,42 +354,81 @@ function App() {
     sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function getHeaderMessage() {
-    if (monthlyRemaining < 0) {
-      return `This month is short by ${formatCurrency(Math.abs(monthlyRemaining))}`;
-    }
-
-    if (monthlyRemaining > 0) {
-      return `You'll save ${formatCurrency(monthlyRemaining)} this month`;
-    }
-
-    return "You're on track this month.";
-  }
-
-  function getForecastMessage() {
+  function getMonthlySnapshot() {
     if (monthlyRemaining < 0) {
       const amountShort = Math.abs(monthlyRemaining);
 
       return {
-        headline: `This month's spending exceeds income by ${formatCurrency(amountShort)}`,
-        instruction: `Add income or reduce spending by ${formatCurrency(amountShort)}`,
+        headline: `You'll be short ${formatCurrency(amountShort)} this month.`,
+        note:
+          totals.availableMoney >= 0
+            ? "You can cover it with money already in your account."
+            : "Add income or lower spending this month.",
+      };
+    }
+
+    if (monthlyRemaining > 0) {
+      return {
+        headline: `You'll save ${formatCurrency(monthlyRemaining)} this month.`,
+        note: "",
       };
     }
 
     return {
-      headline: `You'll save ${formatCurrency(monthlyRemaining)} this month`,
-      instruction: `Keep spending under ${formatCurrency(monthlyRemaining)} this month`,
+      headline: "You'll break even this month.",
+      note: "",
     };
   }
 
-  const forecastMessage = getForecastMessage();
+  function getHeadsUpMessages() {
+    const messages = [];
+    const tightMonthThreshold = Math.max(150, totals.incomeThisMonthTotal * 0.1);
+
+    if (forecast.firstNegativeDate) {
+      messages.push(`You may be low on money around ${formatDateLabel(forecast.firstNegativeDate)}.`);
+    } else if (forecast.firstTightDate) {
+      messages.push(`Money may get low around ${formatDateLabel(forecast.firstTightDate)}.`);
+    }
+
+    if (monthlyRemaining >= 0 && totals.incomeThisMonthTotal > 0 && monthlyRemaining <= tightMonthThreshold) {
+      messages.push("There is not much extra money this month.");
+    }
+
+    const clusteredBills = upcomingBills.some((bill, index) => {
+      const nextBill = upcomingBills[index + 1];
+
+      if (!nextBill) {
+        return false;
+      }
+
+      const difference = nextBill.dueDate.getTime() - bill.dueDate.getTime();
+      const daysBetween = difference / (24 * 60 * 60 * 1000);
+
+      return daysBetween <= 7;
+    });
+
+    if (clusteredBills) {
+      messages.push("Several bills are close together this week.");
+    }
+
+    const estimatedIncome = Number(trackerState.estimatedMonthlyIncome) || 0;
+    if (estimatedIncome > 0 && totals.incomeThisMonthTotal + 50 < estimatedIncome) {
+      messages.push("Only part of this month's income is included.");
+    }
+
+    return messages;
+  }
+
+  const monthlySnapshot = getMonthlySnapshot();
+  const headsUpMessages = getHeadsUpMessages();
 
   return (
     <main className="money-app">
       <div className="app-stack">
         <section className="hero-card">
           <p className="hero-label">This month</p>
-          <h1>{getHeaderMessage()}</h1>
+          <h1>{monthlySnapshot.headline}</h1>
+          {monthlySnapshot.note ? <p className="hero-note">{monthlySnapshot.note}</p> : null}
         </section>
 
         {totals.currentBalance === 0 && totals.totalIncome === 0 ? (
@@ -453,15 +492,23 @@ function App() {
         <section className="card">
           <div className="section-head">
             <div>
-              <p className="section-label">Looking ahead</p>
-              <h2>This month</h2>
+              <p className="section-label">Heads up</p>
             </div>
           </div>
 
-          <div className={`insight-card${monthlyRemaining < 0 ? " insight-card-warning" : ""}`}>
-            <p className="insight-copy">{forecastMessage.headline}</p>
-            <p className="insight-note">{forecastMessage.instruction}</p>
-          </div>
+          {headsUpMessages.length === 0 ? (
+            <p className="list-empty">No big surprises right now.</p>
+          ) : (
+            <div className="insight-card">
+              <ul className="heads-up-list">
+                {headsUpMessages.map((message) => (
+                  <li key={message} className="heads-up-item">
+                    {message}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </section>
 
         <div className="inline-actions">
