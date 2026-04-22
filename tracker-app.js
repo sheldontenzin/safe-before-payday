@@ -403,6 +403,22 @@ function saveState(state) {
   }
 }
 
+function getDefaultIncomeValues() {
+  return {
+    label: "",
+    amount: "",
+    repeat: "once",
+    repeats: "1",
+  };
+}
+
+function getDefaultIncomeForm() {
+  return {
+    ...getDefaultIncomeValues(),
+    date: getTodayValue(),
+  };
+}
+
 function EmptyState() {
   return (
     <div className="empty-state">
@@ -414,9 +430,9 @@ function EmptyState() {
 function App() {
   const [trackerState, setTrackerState] = useState(loadState);
   const [incomeForm, setIncomeForm] = useState(() => ({
+    ...getDefaultIncomeForm(),
     label: trackerState.lastIncomeValues.label,
     amount: trackerState.lastIncomeValues.amount,
-    date: getTodayValue(),
     repeat: trackerState.lastIncomeValues.repeat,
     repeats: trackerState.lastIncomeValues.repeats,
   }));
@@ -772,15 +788,28 @@ function App() {
 
   function removeEntry(collectionKey, entryId) {
     let removedEntry = null;
+    const shouldResetIncomeForm = collectionKey === "incomeEntries";
 
     setTrackerState((current) => {
       removedEntry = current[collectionKey].find((entry) => entry.id === entryId) ?? null;
+
+      if (shouldResetIncomeForm) {
+        return {
+          ...current,
+          incomeEntries: current.incomeEntries.filter((entry) => entry.id !== entryId),
+          lastIncomeValues: getDefaultIncomeValues(),
+        };
+      }
 
       return {
         ...current,
         [collectionKey]: current[collectionKey].filter((entry) => entry.id !== entryId),
       };
     });
+
+    if (shouldResetIncomeForm) {
+      setIncomeForm(getDefaultIncomeForm());
+    }
 
     if (removedEntry) {
       showUndoToast({ collectionKey, entry: removedEntry });
