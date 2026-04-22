@@ -236,6 +236,7 @@ function buildLabelProfiles(entries, labelKey, dateKey) {
       dates: [],
       recentAmount: amount,
       amountCounts: new Map(),
+      latestAvailability: entry?.availability === "available_now" ? "available_now" : "expected_later",
     };
 
     existing.count += 1;
@@ -245,6 +246,7 @@ function buildLabelProfiles(entries, labelKey, dateKey) {
       existing.label = label;
       existing.lastDate = dateValue;
       existing.recentAmount = amount;
+      existing.latestAvailability = entry?.availability === "available_now" ? "available_now" : "expected_later";
     }
 
     const amountKey = String(clampMoney(amount));
@@ -281,6 +283,7 @@ function buildLabelProfiles(entries, labelKey, dateKey) {
         lastDate: profile.lastDate,
         amount: mostLikelyAmount?.amount ?? profile.recentAmount,
         repeat: inferRepeatPattern(profile.dates),
+        availability: profile.latestAvailability || "expected_later",
       };
     })
     .sort((left, right) => {
@@ -298,6 +301,7 @@ function normalizeIncomeEntry(entry) {
     amount: Number(entry?.amount) || 0,
     date: typeof entry?.date === "string" ? entry.date : getTodayValue(),
     label: typeof entry?.label === "string" ? entry.label : "",
+    availability: entry?.availability === "available_now" ? "available_now" : "expected_later",
   };
 }
 
@@ -343,6 +347,7 @@ function loadState() {
       amount: "",
       repeat: "once",
       repeats: "1",
+      availability: "expected_later",
     },
     lastBillValues: {
       name: "",
@@ -378,6 +383,7 @@ function loadState() {
         amount: parsed?.lastIncomeValues?.amount ?? "",
         repeat: parsed?.lastIncomeValues?.repeat ?? "once",
         repeats: parsed?.lastIncomeValues?.repeats ?? "1",
+        availability: parsed?.lastIncomeValues?.availability === "available_now" ? "available_now" : "expected_later",
       },
       lastBillValues: {
         name: parsed?.lastBillValues?.name ?? "",
@@ -419,6 +425,7 @@ function App() {
     date: getTodayValue(),
     repeat: trackerState.lastIncomeValues.repeat,
     repeats: trackerState.lastIncomeValues.repeats,
+    availability: trackerState.lastIncomeValues.availability,
   }));
   const [billForm, setBillForm] = useState(() => ({
     name: trackerState.lastBillValues.name,
@@ -470,7 +477,9 @@ function App() {
 
   const totals = useMemo(() => {
     const currentBalance = clampMoney(Number(trackerState.currentBalance) || 0);
-    const upcomingIncomeEntries = trackerState.incomeEntries.filter((entry) => entry.date > todayValue);
+    const upcomingIncomeEntries = trackerState.incomeEntries.filter(
+      (entry) => entry.date > todayValue && entry.availability !== "available_now"
+    );
     const billsThisMonth = trackerState.fixedExpenses.filter((bill) => isInCurrentMonth(bill.dueDate, currentMonthKey));
     const upcomingBillEntries = trackerState.fixedExpenses.filter((bill) => bill.dueDate > todayValue);
     const spendingThisMonth = trackerState.extraExpenses.filter((entry) => isInCurrentMonth(entry.date, currentMonthKey));
@@ -539,6 +548,7 @@ function App() {
         amount: Number(entry.amount) || 0,
         kind: "income",
         sortOrder: 2,
+        availability: entry.availability,
       })),
       ...trackerState.fixedExpenses.map((bill) => ({
         date: bill.dueDate,
@@ -553,7 +563,12 @@ function App() {
         sortOrder: 1,
       })),
     ]
-      .filter((event) => event.date && event.date > todayValue)
+      .filter(
+        (event) =>
+          event.date &&
+          event.date > todayValue &&
+          !(event.kind === "income" && event.availability === "available_now")
+      )
       .sort((a, b) => {
         if (a.date !== b.date) {
           return a.date > b.date ? 1 : -1;
@@ -610,6 +625,7 @@ function App() {
       amount: String(profile.amount || ""),
       repeat: profile.repeat,
       date: getNextFutureDate(profile.lastDate, profile.repeat, todayValue),
+      availability: profile.availability || "expected_later",
     }));
   }
 
@@ -673,21 +689,39 @@ function App() {
     }
 
     const dates = buildRecurringDates(incomeForm.date, incomeForm.repeat, incomeForm.repeats);
-    const incomeEntries = dates.map((dateValue) => ({
-      id: createId("income"),
-      amount,
-      date: dateValue,
-      label: incomeForm.label.trim(),
-    }));
+    let balanceIncrease = 0;
+    const incomeEntries = dates.map((dateValue) => {
+      const availability =
+        incomeForm.availability === "available_now" && dateValue <= todayValue
+          ? "available_now"
+          : "expected_later";
+
+      if (availability === "available_now") {
+        balanceIncrease += amount;
+      }
+
+      return {
+        id: createId("income"),
+        amount,
+        date: dateValue,
+        label: incomeForm.label.trim(),
+        availability,
+      };
+    });
 
     setTrackerState((current) => ({
       ...current,
+      currentBalance:
+        balanceIncrease > 0
+          ? String(clampMoney((Number(current.currentBalance) || 0) + balanceIncrease))
+          : current.currentBalance,
       incomeEntries: [...incomeEntries, ...current.incomeEntries],
       lastIncomeValues: {
         label: incomeForm.label,
         amount: incomeForm.amount,
         repeat: incomeForm.repeat,
         repeats: incomeForm.repeats,
+        availability: incomeForm.availability,
       },
     }));
 
@@ -919,7 +953,6 @@ function App() {
 
   const monthlySnapshot = getMonthlySnapshot();
   const headsUpMessages = getHeadsUpMessages();
-  const nextUpcomingBill = upcomingBills[0] ?? null;
 
   return (
     <main className="money-app">
@@ -1062,8 +1095,9 @@ function App() {
             <div className="section-total">{formatCurrency(totals.incomeThisMonthTotal)}</div>
           </div>
 
-          <p className="section-helper">Add upcoming income you still expect to receive.</p>
-          <p className="list-help">We remember your usual income labels, amounts, and repeat pattern.</p>
+          <p className="section-helper">Add income and choose whether it is available now or expected later.</p>
+          <p className="list-help">Choose whether this money is already available now or expected later.</p>
+          <p className="list-help">We remember your usual income labels, amounts, repeat pattern, and timing.</p>
 
           <form className="entry-form" onSubmit={addIncome}>
             <label className="field">
@@ -1101,6 +1135,19 @@ function App() {
                   setIncomeForm((current) => ({ ...current, date: event.target.value }))
                 }
               />
+            </label>
+
+            <label className="field">
+              <span>Timing</span>
+              <select
+                value={incomeForm.availability}
+                onChange={(event) =>
+                  setIncomeForm((current) => ({ ...current, availability: event.target.value }))
+                }
+              >
+                <option value="available_now">Available now</option>
+                <option value="expected_later">Expected later</option>
+              </select>
             </label>
 
             <label className="field">
@@ -1146,7 +1193,7 @@ function App() {
           <div className="list-block">
             <p className="list-title">All income entered</p>
             <p className="list-help">
-              Available cash only adds future income from this list.
+              Available now income moves into current balance. Expected later income stays in future cash.
             </p>
             {allIncomeEntries.length === 0 ? (
               <p className="list-empty">No income added yet.</p>
@@ -1159,6 +1206,7 @@ function App() {
                       <p className="entry-meta">
                         {entry.label ? `${entry.label} — ` : ""}
                         {formatDateLabel(entry.date)}
+                        {` — ${entry.availability === "available_now" ? "Available now" : "Expected later"}`}
                         {isInCurrentMonth(entry.date, currentMonthKey) ? " — This month" : ""}
                       </p>
                     </div>
