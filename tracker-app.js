@@ -691,10 +691,7 @@ function App() {
     const dates = buildRecurringDates(incomeForm.date, incomeForm.repeat, incomeForm.repeats);
     let balanceIncrease = 0;
     const incomeEntries = dates.map((dateValue) => {
-      const availability =
-        incomeForm.availability === "available_now" && dateValue <= todayValue
-          ? "available_now"
-          : "expected_later";
+      const availability = incomeForm.availability === "available_now" ? "available_now" : "expected_later";
 
       if (availability === "available_now") {
         balanceIncrease += amount;
@@ -1095,8 +1092,7 @@ function App() {
             <div className="section-total">{formatCurrency(totals.incomeThisMonthTotal)}</div>
           </div>
 
-          <p className="section-helper">Add income and choose whether it is available now or expected later.</p>
-          <p className="list-help">Choose whether this money is already available now or expected later.</p>
+          <p className="section-helper">Add income and choose whether it is already in your balance or expected later.</p>
           <p className="list-help">We remember your usual income labels, amounts, repeat pattern, and timing.</p>
 
           <form className="entry-form" onSubmit={addIncome}>
@@ -1132,13 +1128,18 @@ function App() {
                 type="date"
                 value={incomeForm.date}
                 onChange={(event) =>
-                  setIncomeForm((current) => ({ ...current, date: event.target.value }))
+                  setIncomeForm((current) => ({
+                    ...current,
+                    date: event.target.value,
+                    availability:
+                      event.target.value > todayValue ? "expected_later" : current.availability,
+                  }))
                 }
               />
             </label>
 
             <label className="field">
-              <span>Timing</span>
+              <span>{incomeForm.date > todayValue ? "Timing" : "Is this already in your balance?"}</span>
               <select
                 value={incomeForm.availability}
                 onChange={(event) =>
