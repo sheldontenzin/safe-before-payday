@@ -469,14 +469,18 @@ function App() {
   const spendingQuickPicks = useMemo(() => spendingProfiles.slice(0, 4), [spendingProfiles]);
 
   const totals = useMemo(() => {
-    const currentBalance = clampMoney(Number(trackerState.currentBalance) || 0);
-    const usableIncomeEntries = trackerState.incomeEntries.filter((entry) => entry.date >= todayValue);
+    const baseCurrentBalance = clampMoney(Number(trackerState.currentBalance) || 0);
+    const currentIncomeEntries = trackerState.incomeEntries.filter((entry) => entry.date <= todayValue);
+    const upcomingIncomeEntries = trackerState.incomeEntries.filter((entry) => entry.date > todayValue);
     const billsThisMonth = trackerState.fixedExpenses.filter((bill) => isInCurrentMonth(bill.dueDate, currentMonthKey));
     const upcomingBillEntries = trackerState.fixedExpenses.filter((bill) => bill.dueDate > todayValue);
     const spendingThisMonth = trackerState.extraExpenses.filter((entry) => isInCurrentMonth(entry.date, currentMonthKey));
     const upcomingSpendingEntries = trackerState.extraExpenses.filter((entry) => entry.date > todayValue);
+    const currentIncomeTotal = clampMoney(
+      currentIncomeEntries.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0)
+    );
     const totalIncome = clampMoney(
-      usableIncomeEntries.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0)
+      upcomingIncomeEntries.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0)
     );
     const incomeThisMonthTotal = clampMoney(
       incomeThisMonth.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0)
@@ -494,10 +498,13 @@ function App() {
       spendingThisMonth.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0)
     );
     const totalSpent = clampMoney(totalBills + totalExtra);
+    const currentBalance = clampMoney(baseCurrentBalance + currentIncomeTotal);
     const availableMoney = clampMoney(currentBalance + totalIncome - totalSpent);
 
     return {
+      baseCurrentBalance,
       currentBalance,
+      currentIncomeTotal,
       totalIncome,
       incomeThisMonthTotal,
       totalBills,
@@ -532,7 +539,7 @@ function App() {
   }, [todayValue, trackerState.fixedExpenses]);
 
   const forecast = useMemo(() => {
-    const startingBalance = clampMoney(Number(trackerState.currentBalance) || 0);
+    const startingBalance = totals.currentBalance;
     const futureEvents = [
       ...trackerState.incomeEntries.map((entry) => ({
         date: entry.date,
@@ -553,7 +560,7 @@ function App() {
         sortOrder: 1,
       })),
     ]
-      .filter((event) => event.date && event.date >= todayValue)
+      .filter((event) => event.date && event.date > todayValue)
       .sort((a, b) => {
         if (a.date !== b.date) {
           return a.date > b.date ? 1 : -1;
@@ -589,7 +596,7 @@ function App() {
       firstTightDate,
       hasFutureEvents: futureEvents.length > 0,
     };
-  }, [todayValue, trackerState.currentBalance, trackerState.extraExpenses, trackerState.fixedExpenses, trackerState.incomeEntries]);
+  }, [todayValue, totals.currentBalance, trackerState.extraExpenses, trackerState.fixedExpenses, trackerState.incomeEntries]);
 
   const allIncomeEntries = [...trackerState.incomeEntries].sort((a, b) => (a.date < b.date ? 1 : -1));
   const recentSpending = [...trackerState.extraExpenses].sort((a, b) => (a.date < b.date ? 1 : -1));
@@ -1061,7 +1068,7 @@ function App() {
             <div className="section-total">{formatCurrency(totals.incomeThisMonthTotal)}</div>
           </div>
 
-          <p className="section-helper">Income dated today counts now. Future-dated income stays in projections until its date.</p>
+          <p className="section-helper">Income dated today or earlier counts in current balance. Future-dated income stays in projections until its date.</p>
           <p className="list-help">We remember your usual income labels, amounts, and repeat pattern.</p>
 
           <form className="entry-form" onSubmit={addIncome}>
@@ -1145,7 +1152,7 @@ function App() {
           <div className="list-block">
             <p className="list-title">All income entered</p>
             <p className="list-help">
-              Income dated today affects money now. Future-dated income stays in future cash until its date.
+              Income dated today or earlier moves into current balance. Only later income stays in Upcoming income.
             </p>
             {allIncomeEntries.length === 0 ? (
               <p className="list-empty">No income added yet.</p>
