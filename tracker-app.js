@@ -532,7 +532,7 @@ function App() {
     };
   }, [currentMonthKey, incomeThisMonth, todayValue, trackerState.currentBalance, trackerState.extraExpenses, trackerState.fixedExpenses, trackerState.incomeEntries]);
 
-  const monthlyRemaining = clampMoney(
+  const monthlyNetChange = clampMoney(
     totals.incomeThisMonthTotal - totals.totalExtraThisMonth - totals.totalBillsThisMonth
   );
 
@@ -880,27 +880,24 @@ function App() {
   }
 
   function getMonthlySnapshot() {
-    if (monthlyRemaining < 0) {
-      const amountShort = Math.abs(monthlyRemaining);
+    if (totals.availableMoney < 0) {
+      const amountShort = Math.abs(totals.availableMoney);
 
       return {
-        headline: `You'll be short ${formatCurrency(amountShort)} this month.`,
-        note:
-          totals.availableMoney >= 0
-            ? "You can cover it with money already in your account."
-            : "Add income or lower spending this month.",
+        headline: `You'll be short ${formatCurrency(amountShort)} after upcoming bills and spending.`,
+        note: "",
       };
     }
 
-    if (monthlyRemaining > 0) {
+    if (totals.availableMoney > 0) {
       return {
-        headline: `You'll save ${formatCurrency(monthlyRemaining)} this month.`,
+        headline: `You'll have ${formatCurrency(totals.availableMoney)} left after upcoming bills and spending.`,
         note: "",
       };
     }
 
     return {
-      headline: "You'll break even this month.",
+      headline: "You'll break even after upcoming bills and spending.",
       note: "",
     };
   }
@@ -917,7 +914,7 @@ function App() {
       messages.push(`Money may get low around ${formatDateLabel(forecast.firstTightDate)}.`);
     }
 
-    if (monthlyRemaining >= 0 && totals.incomeThisMonthTotal > 0 && monthlyRemaining <= tightMonthThreshold) {
+    if (monthlyNetChange >= 0 && totals.incomeThisMonthTotal > 0 && monthlyNetChange <= tightMonthThreshold) {
       messages.push("There is not much extra money this month.");
     }
 
@@ -941,12 +938,12 @@ function App() {
     if (partialIncomeIncluded) {
       messages.push("Only part of this month's income is included.");
 
-      if (totals.availableMoney >= 0 && monthlyRemaining < 0) {
+      if (totals.availableMoney >= 0 && monthlyNetChange < 0) {
         messages.push("So far, your current balance still covers this month.");
       } else if (totals.availableMoney >= 0) {
         messages.push("You may still have enough in your account to cover this month.");
       }
-    } else if (totals.availableMoney >= 0 && monthlyRemaining < 0) {
+    } else if (totals.availableMoney >= 0 && monthlyNetChange < 0) {
       messages.push("Bills are covered so far.");
     }
 
@@ -972,7 +969,7 @@ function App() {
             <p className="main-label">Available cash</p>
             <p className="main-value">{formatCurrency(totals.availableMoney)}</p>
             <p className="soft-note">
-              Includes your current balance and upcoming income, minus upcoming bills and spending.
+              Includes your current balance and upcoming income, minus upcoming spending. Upcoming bills below are already included in that spending total.
             </p>
 
             <div className="main-summary">
