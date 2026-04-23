@@ -1130,9 +1130,6 @@ function App() {
             <div className="section-total">{formatCurrency(totals.incomeThisMonthTotal)}</div>
           </div>
 
-          <p className="section-helper">Income dated today or earlier counts in current balance. Future-dated income stays in projections until its date.</p>
-          <p className="list-help">We remember your usual income labels, amounts, and repeat pattern.</p>
-
           <form className="entry-form" onSubmit={addIncome}>
             <label className="field">
               <span>Label</span>
@@ -1214,9 +1211,6 @@ function App() {
 
           <div className="list-block">
             <p className="list-title">All income entered</p>
-            <p className="list-help">
-              Income dated today or earlier moves into current balance. Only later income stays in Upcoming income.
-            </p>
             {allIncomeEntries.length === 0 ? (
               <p className="list-empty">No income added yet.</p>
             ) : (
@@ -1253,8 +1247,6 @@ function App() {
             </div>
             <div className="section-total">{formatCurrency(totals.totalBills)}</div>
           </div>
-          <p className="list-help">We remember your usual bill names, amounts, and repeat pattern.</p>
-
           <form className="entry-form bill-form" onSubmit={addBill}>
             <label className="field">
               <span>Name</span>
