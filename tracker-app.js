@@ -1037,8 +1037,8 @@ function App() {
                 onClick={() => goToSection("spending", spendingRef, spendingInputRef)}
               >
                 <span className="summary-label-group">
-                  <span>Upcoming spending*</span>
-                  <span className="summary-footnote">*Includes upcoming bills</span>
+                  <span>Upcoming spending</span>
+                  <span className="summary-footnote">Includes upcoming bills</span>
                 </span>
                 <strong>{formatCurrency(totals.totalSpent)}</strong>
               </button>
