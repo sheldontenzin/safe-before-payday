@@ -257,6 +257,7 @@ a {
 .card {
   padding: 28px 24px;
   min-width: 0;
+  overflow-x: hidden;
 }
 
 .section-highlight {
@@ -322,6 +323,7 @@ input[type="date"],
 input[type="number"],
 input[type="text"],
 select {
+  display: block;
   width: 100%;
   max-width: 100%;
   min-width: 0;
@@ -329,7 +331,10 @@ select {
 }
 
 input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
   overflow: hidden;
+  inline-size: 100%;
 }
 
 input[type="date"]::-webkit-date-and-time-value {
@@ -361,6 +366,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   display: grid;
   gap: 10px;
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .field span {
@@ -505,7 +512,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: var(--muted);
   font-size: 0.88rem;
   line-height: 1.4;
-  font-style: italic;
 }
 
 .heads-up-content,
@@ -525,12 +531,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: var(--text);
   font-size: 0.98rem;
   line-height: 1.55;
+  font-style: italic;
 }
 
 .heads-up-tip {
   color: var(--muted);
   font-size: 0.96rem;
   line-height: 1.65;
+  font-style: italic;
 }
 
 .undo-toast {
@@ -630,6 +638,21 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .money-app {
     padding-left: 14px;
     padding-right: 14px;
+  }
+
+  .hero-card,
+  .main-card,
+  .card {
+    max-width: 100%;
+  }
+
+  .field input,
+  .field select,
+  .mini-field input,
+  .mini-field select,
+  input[type="date"] {
+    width: 100%;
+    max-width: 100%;
   }
 
   .hero-card,
