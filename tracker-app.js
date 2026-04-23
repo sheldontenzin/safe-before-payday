@@ -1289,7 +1289,7 @@ function App() {
               />
             </label>
 
-            <button className="soft-button" type="submit">
+            <button className="primary-button" type="submit">
               Add bill
             </button>
           </form>
