@@ -1011,7 +1011,7 @@ function App() {
             <p className="main-label">Available cash</p>
             <p className="main-value">{formatCurrency(totals.availableMoney)}</p>
             <p className="soft-note">
-              Includes your current balance and upcoming income, minus upcoming spending. Upcoming bills below are already included in that spending total.
+              Includes your current balance and upcoming income, minus upcoming spending.
             </p>
 
             <div className="main-summary">
@@ -1036,7 +1036,10 @@ function App() {
                 type="button"
                 onClick={() => goToSection("spending", spendingRef, spendingInputRef)}
               >
-                <span>Upcoming spending</span>
+                <span className="summary-label-group">
+                  <span>Upcoming spending*</span>
+                  <span className="summary-footnote">*Includes upcoming bills</span>
+                </span>
                 <strong>{formatCurrency(totals.totalSpent)}</strong>
               </button>
             </div>
