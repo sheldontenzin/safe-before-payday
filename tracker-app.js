@@ -996,10 +996,10 @@ function App() {
           <button className="inline-button primary" type="button" onClick={() => goToSection("income", incomeRef, incomeInputRef)}>
             Add income
           </button>
-          <button className="inline-button secondary" type="button" onClick={() => goToSection("spending", spendingRef, spendingInputRef)}>
+          <button className="inline-button primary" type="button" onClick={() => goToSection("spending", spendingRef, spendingInputRef)}>
             Add spending
           </button>
-          <button className="inline-button secondary" type="button" onClick={() => goToSection("bills", billsRef, billInputRef)}>
+          <button className="inline-button primary" type="button" onClick={() => goToSection("bills", billsRef, billInputRef)}>
             Add bill
           </button>
         </div>

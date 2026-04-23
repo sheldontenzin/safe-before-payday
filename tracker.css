@@ -416,7 +416,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .primary-button,
-.soft-button {
+.soft-button,
+.inline-button {
   min-height: 56px;
   padding: 0 20px;
   font-weight: 700;
@@ -424,7 +425,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   max-width: 100%;
 }
 
-.primary-button {
+.primary-button,
+.inline-button.primary {
   background: var(--primary);
   color: #101311;
   border: none;
@@ -441,7 +443,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   transform: scale(0.985);
 }
 
-.soft-button {
+.soft-button,
+.inline-button.secondary,
+.ghost-inline,
+.undo-toast button {
   background: var(--secondary-bg);
   color: #dce7b0;
   border: 1px solid rgba(199, 242, 74, 0.18);
@@ -449,7 +454,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .soft-button:hover,
 .inline-button.secondary:hover,
-.ghost-inline:hover {
+.ghost-inline:hover,
+.undo-toast button:hover {
   background: rgba(199, 242, 74, 0.16);
 }
 
@@ -534,10 +540,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .undo-toast button {
   min-height: 34px;
   padding: 0 12px;
-  border: 0;
   border-radius: 999px;
-  background: rgba(199, 242, 74, 0.16);
-  color: var(--text);
 }
 
 .inline-actions {
@@ -557,18 +560,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border-radius: 999px;
   cursor: pointer;
   font-weight: 700;
-}
-
-.inline-button.primary {
-  background: var(--primary);
-  color: #101311;
-  border: none;
-}
-
-.inline-button.secondary {
-  background: rgba(199, 242, 74, 0.12);
-  color: #dce7b0;
-  border: 1px solid rgba(199, 242, 74, 0.18);
 }
 
 .entry-row {
@@ -597,10 +588,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .ghost-inline {
   min-height: 38px;
   padding: 0 12px;
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--muted);
   font-size: 0.88rem;
-  border: 1px solid var(--line);
 }
 
 @media (max-width: 720px) {
