@@ -449,11 +449,16 @@ function App() {
     date: getTodayValue(),
   });
   const [undoState, setUndoState] = useState(null);
+  const [highlightedSection, setHighlightedSection] = useState("");
   const balanceRef = useRef(null);
   const incomeRef = useRef(null);
   const spendingRef = useRef(null);
   const billsRef = useRef(null);
+  const incomeInputRef = useRef(null);
+  const spendingInputRef = useRef(null);
+  const billInputRef = useRef(null);
   const undoTimeoutRef = useRef(null);
+  const highlightTimeoutRef = useRef(null);
 
   useEffect(() => {
     saveState(trackerState);
@@ -463,6 +468,9 @@ function App() {
     return () => {
       if (undoTimeoutRef.current) {
         window.clearTimeout(undoTimeoutRef.current);
+      }
+      if (highlightTimeoutRef.current) {
+        window.clearTimeout(highlightTimeoutRef.current);
       }
     };
   }, []);
@@ -875,8 +883,21 @@ function App() {
     }));
   }
 
-  function scrollToSection(sectionRef) {
+  function goToSection(sectionKey, sectionRef, inputRef) {
     sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setHighlightedSection(sectionKey);
+
+    if (highlightTimeoutRef.current) {
+      window.clearTimeout(highlightTimeoutRef.current);
+    }
+
+    highlightTimeoutRef.current = window.setTimeout(() => {
+      setHighlightedSection((current) => (current === sectionKey ? "" : current));
+    }, 1800);
+
+    window.setTimeout(() => {
+      inputRef?.current?.focus?.();
+    }, 220);
   }
 
   function getMonthlySnapshot() {
@@ -884,7 +905,7 @@ function App() {
       const amountShort = Math.abs(totals.availableMoney);
 
       return {
-        headline: `You'll be short ${formatCurrency(amountShort)} after upcoming bills and spending.`,
+        headline: `You may be short ${formatCurrency(amountShort)} after upcoming bills and spending.`,
         note: "",
       };
     }
@@ -957,10 +978,22 @@ function App() {
     <main className="money-app">
       <div className="app-stack" id="summary-top">
         <section className="hero-card">
-          <p className="hero-label">This month</p>
+          <p className="hero-label">Projection</p>
           <h1>{monthlySnapshot.headline}</h1>
           {monthlySnapshot.note ? <p className="hero-note">{monthlySnapshot.note}</p> : null}
         </section>
+
+        <div className="top-quick-actions">
+          <button className="inline-button primary" type="button" onClick={() => goToSection("income", incomeRef, incomeInputRef)}>
+            Add income
+          </button>
+          <button className="inline-button secondary" type="button" onClick={() => goToSection("spending", spendingRef, spendingInputRef)}>
+            Add spending
+          </button>
+          <button className="inline-button secondary" type="button" onClick={() => goToSection("bills", billsRef, billInputRef)}>
+            Add bill
+          </button>
+        </div>
 
         {totals.currentBalance === 0 && totals.totalIncome === 0 ? (
           <EmptyState />
@@ -976,7 +1009,7 @@ function App() {
               <button
                 className="summary-pill summary-action"
                 type="button"
-                onClick={() => scrollToSection(balanceRef)}
+                onClick={() => goToSection("balance", balanceRef)}
               >
                 <span>Current balance</span>
                 <strong>{formatCurrency(totals.currentBalance)}</strong>
@@ -984,7 +1017,7 @@ function App() {
               <button
                 className="summary-pill summary-action"
                 type="button"
-                onClick={() => scrollToSection(incomeRef)}
+                onClick={() => goToSection("income", incomeRef, incomeInputRef)}
               >
                 <span>Upcoming income</span>
                 <strong>{formatCurrency(totals.totalIncome)}</strong>
@@ -992,7 +1025,7 @@ function App() {
               <button
                 className="summary-pill summary-action"
                 type="button"
-                onClick={() => scrollToSection(spendingRef)}
+                onClick={() => goToSection("spending", spendingRef, spendingInputRef)}
               >
                 <span>Upcoming spending</span>
                 <strong>{formatCurrency(totals.totalSpent)}</strong>
@@ -1003,7 +1036,7 @@ function App() {
               <button
                 className="sub-card summary-action"
                 type="button"
-                onClick={() => scrollToSection(billsRef)}
+                onClick={() => goToSection("bills", billsRef, billInputRef)}
               >
                 <p>Upcoming bills</p>
                 <strong>{formatCurrency(totals.totalBills)}</strong>
@@ -1011,7 +1044,7 @@ function App() {
               <button
                 className="sub-card summary-action"
                 type="button"
-                onClick={() => scrollToSection(spendingRef)}
+                onClick={() => goToSection("spending", spendingRef, spendingInputRef)}
               >
                 <p>Other upcoming spending</p>
                 <strong>{formatCurrency(totals.totalExtra)}</strong>
@@ -1042,16 +1075,7 @@ function App() {
           )}
         </section>
 
-        <div className="inline-actions">
-          <button className="inline-button primary" type="button" onClick={() => scrollToSection(incomeRef)}>
-            Add income
-          </button>
-          <button className="inline-button secondary" type="button" onClick={() => scrollToSection(spendingRef)}>
-            Add spending
-          </button>
-        </div>
-
-        <section className="card" id="more-section" ref={balanceRef}>
+        <section className={`card ${highlightedSection === "balance" ? "section-highlight" : ""}`} id="more-section" ref={balanceRef}>
           <div className="section-head">
             <div>
               <p className="section-label">Right now</p>
@@ -1085,7 +1109,7 @@ function App() {
           </label>
         </section>
 
-        <section className="card" id="income-form" ref={incomeRef}>
+        <section className={`card ${highlightedSection === "income" ? "section-highlight" : ""}`} id="income-form" ref={incomeRef}>
           <div className="section-head">
             <div>
               <p className="section-label">Income</p>
@@ -1101,6 +1125,7 @@ function App() {
             <label className="field">
               <span>Label</span>
               <input
+                ref={incomeInputRef}
                 type="text"
                 placeholder="Paycheck"
                 list="income-label-suggestions"
@@ -1208,7 +1233,7 @@ function App() {
           </div>
         </section>
 
-        <section className="card" id="bills-form" ref={billsRef}>
+        <section className={`card ${highlightedSection === "bills" ? "section-highlight" : ""}`} id="bills-form" ref={billsRef}>
           <div className="section-head">
             <div>
               <p className="section-label">Bills</p>
@@ -1222,6 +1247,7 @@ function App() {
             <label className="field">
               <span>Name</span>
               <input
+                ref={billInputRef}
                 type="text"
                 placeholder="Rent"
                 list="bill-name-suggestions"
@@ -1323,7 +1349,7 @@ function App() {
           )}
         </section>
 
-        <section className="card" id="spending-form" ref={spendingRef}>
+        <section className={`card ${highlightedSection === "spending" ? "section-highlight" : ""}`} id="spending-form" ref={spendingRef}>
           <div className="section-head">
             <div>
               <p className="section-label">Money out</p>
@@ -1352,6 +1378,7 @@ function App() {
             <label className="field">
               <span>Amount</span>
               <input
+                ref={spendingInputRef}
                 type="number"
                 inputMode="decimal"
                 min="0"

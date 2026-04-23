@@ -84,6 +84,12 @@ a {
   min-width: 0;
 }
 
+.top-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .hero-card,
 .main-card,
 .card,
@@ -239,6 +245,13 @@ a {
 .card {
   padding: 28px 24px;
   min-width: 0;
+}
+
+.section-highlight {
+  border-color: rgba(199, 242, 74, 0.34);
+  box-shadow:
+    0 0 0 3px rgba(199, 242, 74, 0.12),
+    var(--shadow);
 }
 
 .balance-field {
@@ -590,6 +603,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .section-head {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .top-quick-actions {
+    grid-template-columns: 1fr;
   }
 
   .mini-field {
