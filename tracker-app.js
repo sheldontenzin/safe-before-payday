@@ -10,6 +10,14 @@ const REPEAT_OPTIONS = [
   { value: "first", label: "Every 1st" },
 ];
 
+const HEADS_UP_TIPS = [
+  "Small automatic transfers on payday are easier to stick to than saving what is left over.",
+  "Bills due right after payday are easier to handle if you set that money aside first.",
+  "Weekly spending checks can catch problems earlier than waiting until the end of the month.",
+  "A small buffer in checking can help prevent one bill from throwing off the rest of the month.",
+  "Grouping subscriptions in one place makes it easier to spot what can be cut quickly.",
+];
+
 function createId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -973,6 +981,7 @@ function App() {
 
   const monthlySnapshot = getMonthlySnapshot();
   const headsUpMessages = getHeadsUpMessages();
+  const headsUpTip = HEADS_UP_TIPS[new Date().getDate() % HEADS_UP_TIPS.length];
 
   return (
     <main className="money-app">
@@ -1056,14 +1065,14 @@ function App() {
         <section className="card">
           <div className="section-head">
             <div>
-              <p className="section-label">Heads up</p>
+              <p className="heads-up-label">Heads up</p>
             </div>
           </div>
 
           {headsUpMessages.length === 0 ? (
-            <p className="list-empty">No big surprises right now.</p>
+            <p className="heads-up-tip">{headsUpTip}</p>
           ) : (
-            <div className="insight-card">
+            <div className="heads-up-content">
               <ul className="heads-up-list">
                 {headsUpMessages.map((message) => (
                   <li key={message} className="heads-up-item">

@@ -483,18 +483,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   gap: 12px;
 }
 
-.insight-card {
-  padding: 20px 22px;
-  border-radius: var(--radius-lg);
-  background: var(--alert-surface);
-  border: 1px solid var(--alert-border);
-  margin-top: 10px;
+.heads-up-label {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.4;
+  font-style: italic;
 }
 
-.insight-copy {
-  font-size: 1.02rem;
-  font-weight: 700;
-  line-height: 1.55;
+.heads-up-content,
+.heads-up-tip {
+  margin-top: 12px;
 }
 
 .heads-up-list {
@@ -506,9 +504,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .heads-up-item {
-  color: var(--alert-text);
+  color: var(--text);
   font-size: 0.98rem;
   line-height: 1.55;
+}
+
+.heads-up-tip {
+  color: var(--muted);
+  font-size: 0.96rem;
+  line-height: 1.65;
 }
 
 .undo-toast {
