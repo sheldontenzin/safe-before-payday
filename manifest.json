@@ -1,10 +1,10 @@
 {
-  "name": "Money Left",
-  "short_name": "Money Left",
+  "name": "CashTrack",
+  "short_name": "CashTrack",
   "display": "standalone",
   "start_url": "/",
-  "background_color": "#F6F4EF",
-  "theme_color": "#F6F4EF",
+  "background_color": "#111615",
+  "theme_color": "#111615",
   "icons": [
     {
       "src": "/app/icon-192.png",
