@@ -1,0 +1,171 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(255, 250, 244, 0.96), rgba(247, 241, 232, 0.98)),
+    #f7f1e8;
+  color: #211c19;
+  font-family:
+    "Avenir Next",
+    "Segoe UI",
+    "Helvetica Neue",
+    Arial,
+    sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family:
+    "Iowan Old Style",
+    "Palatino Linotype",
+    "Book Antiqua",
+    Georgia,
+    serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.section-shell {
+  @apply rounded-[2rem] border border-black/5 bg-cream/95 shadow-soft backdrop-blur;
+}
+
+.eyebrow {
+  @apply inline-flex items-center rounded-full border border-black/10 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-smoke;
+}
+
+.section-title {
+  @apply text-3xl leading-tight text-ink sm:text-4xl;
+}
+
+.section-copy {
+  @apply max-w-2xl text-base leading-8 text-smoke sm:text-lg;
+}
+
+.grain {
+  background-image:
+    linear-gradient(rgba(33, 28, 25, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(33, 28, 25, 0.02) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.everything-pattern {
+  position: relative;
+  isolation: isolate;
+}
+
+.everything-pattern::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.09;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220' fill='none'%3E%3Cg stroke='%23b89c84' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='48' cy='48' r='18'/%3E%3Ccircle cx='48' cy='48' r='7'/%3E%3Cpath d='M132 36h26v10a12 12 0 0 1-12 12h-2a12 12 0 0 1-12-12V36Z'/%3E%3Cpath d='M158 39h5a6 6 0 0 1 0 12h-4'/%3E%3Cpath d='M36 136h22a3 3 0 0 1 3 3v28H39a3 3 0 0 1-3-3v-28Z'/%3E%3Cpath d='M45 136v31'/%3E%3Cpath d='M96 154h12l8-10 8 8 12 4v11H96v-13Z'/%3E%3Cpath d='M160 142c10 8 18 16 24 26'/%3E%3Cpath d='M171 133c4 4 7 8 10 13'/%3E%3Cpath d='M124 94c6 0 11 5 11 11s-5 11-11 11-11-5-11-11 5-11 11-11Z'/%3E%3Cpath d='M121 88c2-4 4-8 8-11'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 220px 220px;
+  background-repeat: repeat;
+}
+
+.pillar-marquee {
+  overflow: hidden;
+  padding-block: 0.5rem;
+  -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+}
+
+.pillar-marquee-track {
+  display: flex;
+  width: max-content;
+  gap: 1.25rem;
+  animation: pillar-marquee 34s linear infinite;
+  will-change: transform;
+}
+
+.pillar-marquee:hover .pillar-marquee-track,
+.pillar-marquee:focus-within .pillar-marquee-track {
+  animation-play-state: paused;
+}
+
+.pillar-marquee-card {
+  position: relative;
+  width: min(22rem, calc(100vw - 3.5rem));
+  min-height: 18rem;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1px solid rgba(33, 28, 25, 0.08);
+  border-radius: 2rem;
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.7), transparent 28%),
+    radial-gradient(circle at bottom left, rgba(185, 114, 82, 0.08), transparent 34%),
+    rgba(251, 245, 238, 0.96);
+  box-shadow:
+    0 18px 40px rgba(78, 52, 38, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  padding: 1.5rem;
+}
+
+.pillar-marquee-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.08;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160' fill='none'%3E%3Cg stroke='%23b89c84' stroke-width='1.15' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='34' cy='36' r='13'/%3E%3Ccircle cx='34' cy='36' r='5'/%3E%3Cpath d='M102 26h19v8a9 9 0 0 1-9 9h-1a9 9 0 0 1-9-9v-8Z'/%3E%3Cpath d='M121 29h4a5 5 0 0 1 0 10h-3'/%3E%3Cpath d='M28 102h16a2 2 0 0 1 2 2v20H30a2 2 0 0 1-2-2v-20Z'/%3E%3Cpath d='M35 102v22'/%3E%3Cpath d='M78 118h10l6-8 7 6 10 4v8H78v-10Z'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+@keyframes pillar-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(calc(-50% - 0.625rem));
+  }
+}
+
+.overflow-x-auto {
+  scrollbar-width: none;
+}
+
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .everything-pattern::before {
+    opacity: 0.07;
+    background-size: 180px 180px;
+  }
+
+  .pillar-marquee {
+    -webkit-mask-image: linear-gradient(to right, transparent, black 4%, black 96%, transparent);
+    mask-image: linear-gradient(to right, transparent, black 4%, black 96%, transparent);
+  }
+
+  .pillar-marquee-track {
+    gap: 1rem;
+    animation-duration: 30s;
+  }
+
+  .pillar-marquee-card {
+    width: min(18.5rem, calc(100vw - 2.5rem));
+    min-height: 16.5rem;
+    padding: 1.25rem;
+  }
+}
